@@ -1,0 +1,21 @@
+.app-chatbot-container {
+  margin: 40px 0;
+  display: flex;
+  justify-content: center;
+  position: fixed;
+  /* right: 40px;
+  bottom: 40px; */
+  z-index: 9999;
+  box-shadow: 5px 5px 13px rgba(91, 81, 81, 0.4);
+  border-radius: 5px;
+  width:60%;
+}
+
+.react-chatbot-kit-chat-bot-message {
+  margin-left: 0 !important;
+  width: max-content !important;
+}
+
+.react-chatbot-kit-chat-container {
+  width:100% !important;
+}
