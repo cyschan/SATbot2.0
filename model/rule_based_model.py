@@ -15,7 +15,7 @@ from nltk.corpus import wordnet  # noqa
 class ModelDecisionMaker:
     def __init__(self):
 
-        self.data = pd.read_csv('/Users/lisaxy/final_project/model/empatheticPersonas.csv') #change path
+        self.data = pd.read_csv('/Users/lisaxy/SATbot/model/empatheticPersonas.csv', encoding='ISO-8859-1') #change path
 
         # Titles from workshops (Title 7 adapted to give more information)
         self.PROTOCOL_TITLES = [
