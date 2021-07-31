@@ -87,6 +87,7 @@ class ModelDecisionMaker:
         # mapping callable functions over for parsing).
 
         self.users_names = {}
+        self.remaining_choices = {}
 
         self.QUESTIONS = {
 
@@ -122,8 +123,12 @@ class ModelDecisionMaker:
                     "no": "check_emotion",
                 },
                 "protocols": {
-                    "yes": [],
-                    "no": []
+                    "yes": [[
+                        self.PROTOCOL_TITLES[k] for k in [3, 7, 10, 12, 18]
+                    ]],
+                    "no": [[
+                        self.PROTOCOL_TITLES[k] for k in [3, 7, 10, 12, 18]
+                    ]]
                     },
             },
 
@@ -138,10 +143,18 @@ class ModelDecisionMaker:
                     "Happy": lambda user_id, db_session, curr_session, app: self.get_happy_emotion(user_id),
                 },
                 "protocols": {
-                    "Sad": [],
-                    "Angry": [],
-                    "Anxious" : [],
-                    "Happy": []
+                    "Sad": [[
+                        self.PROTOCOL_TITLES[k] for k in [3, 7, 10, 12, 18]
+                    ]],
+                    "Angry": [[
+                        self.PROTOCOL_TITLES[k] for k in [3, 7, 10, 12, 18]
+                    ]],
+                    "Anxious" : [[
+                        self.PROTOCOL_TITLES[k] for k in [3, 7, 10, 12, 18]
+                    ]],
+                    "Happy": [[
+                        self.PROTOCOL_TITLES[k] for k in [3, 7, 10, 12, 18]
+                    ]]
                 },
             },
 
@@ -208,7 +221,7 @@ class ModelDecisionMaker:
                 },
                 "protocols": {
                     "Okay": [],
-                    "I'd rather not": [self.PROTOCOL_TITLES[k] for k in self.positive_protocols],
+                    "I'd rather not": [],
                 },
             },
 
@@ -296,7 +309,7 @@ class ModelDecisionMaker:
 
                 "choices": {
                     "yes": "suggestions",
-                    "no": lambda user_id, db_session, curr_session, app: self.get_next_question(user_id), #"suggestions"
+                    "no": lambda user_id, db_session, curr_session, app: self.get_next_question(user_id),
                 },
                 "protocols": {
                     "yes": [self.PROTOCOL_TITLES[13], self.PROTOCOL_TITLES[17]],
@@ -306,7 +319,7 @@ class ModelDecisionMaker:
 
             ################# POSITIVE EMOTION (HAPPINESS/CONTENT) #################
 
-            "after_classification_happy": {
+            "after_classification_positive": {
                 "model_prompt": lambda user_id, db_session, curr_session, app: self.get_model_prompt_happy(user_id),
 
                 "choices": {
@@ -389,18 +402,19 @@ class ModelDecisionMaker:
             },
 
             "ending_prompt": {
-                "model_prompt": [ lambda user_id, db_session, curr_session, app: self.get_model_prompt_ending(user_id),
+                "model_prompt": lambda user_id, db_session, curr_session, app: self.get_model_prompt_ending(user_id),
 
-                                 "You have been disconnected. Refresh the page if you would like to start over." ],
                 "choices": {"any": "opening_prompt"},
                 "protocols": {"any": []}
                 },
         }
         self.QUESTION_KEYS = list(self.QUESTIONS.keys())
-        self.remaining_choices = ["displaying_antisocial_behaviour", "internal_persecutor_saviour", "personal_crisis", "rigid_thought"]
 
     def clear_names(self, user_id):
         self.users_names[user_id] = ""
+
+    def initialise_remaining_choices(self, user_id):
+        self.remaining_choices[user_id] = ["displaying_antisocial_behaviour", "internal_persecutor_saviour", "personal_crisis", "rigid_thought"]
 
     def save_name(self, user_id, app, db_session):
         try:
@@ -456,14 +470,12 @@ class ModelDecisionMaker:
             opening_prompt = ["Hello " + self.users_names[user_id] + ". ", "How are you feeling today?"]
         return opening_prompt
 
-
-
     def get_next_question(self, user_id):
-        if self.remaining_choices == []:
+        if self.remaining_choices[user_id] == []:
             return "suggestions"
         else:
-            selected_choice = np.random.choice(self.remaining_choices)
-            self.remaining_choices.remove(selected_choice)
+            selected_choice = np.random.choice(self.remaining_choices[user_id])
+            self.remaining_choices[user_id].remove(selected_choice)
             return selected_choice
 
     def add_to_reordered_protocols(self, user_id, next_protocol):
@@ -570,7 +582,7 @@ class ModelDecisionMaker:
     def get_model_prompt_new_worse(self, user_id):
         return np.random.choice(self.data["All emotions - Would you like to attempt another protocol? (Patient feels worse)"].dropna().tolist())
     def get_model_prompt_ending(self, user_id):
-        return np.random.choice(self.data["All emotions - Thank you for taking part. See you soon"].dropna().tolist())
+        return [np.random.choice(self.data["All emotions - Thank you for taking part. See you soon"].dropna().tolist()), "You have been disconnected. Refresh the page if you would like to start over."]
 
 
 
@@ -717,17 +729,17 @@ class ModelDecisionMaker:
         if (
             current_choice == "suggestions"
         ):
-            if current_choice == "after_classification_happy":
-                self.user_emotions[user_id] = "Happy"
-
-            elif current_choice == "after_classification_sad":
-                self.user_emotions[user_id] = "Sad"
-
-            elif current_choice == "after_classification_angry":
-                self.user_emotions[user_id] = "Angry"
-
-            elif current_choice == "after_classification_scared":
-                self.user_emotions[user_id] = "Anxious"
+        #     if current_choice == "after_classification_happy":
+        #         self.user_emotions[user_id] = "Happy"
+        #
+        #     elif current_choice == "after_classification_sad":
+        #         self.user_emotions[user_id] = "Sad"
+        #
+        #     elif current_choice == "after_classification_angry":
+        #         self.user_emotions[user_id] = "Angry"
+        #
+        #     elif current_choice == "after_classification_scared":
+        #         self.user_emotions[user_id] = "Anxious"
 
             # PRE: user_choice is a string representing a number from 1-20,
             # or the title for the corresponding protocol
