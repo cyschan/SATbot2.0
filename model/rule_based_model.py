@@ -123,12 +123,12 @@ class ModelDecisionMaker:
                     "no": "check_emotion",
                 },
                 "protocols": {
-                    "yes": [[
+                    "yes": [
                         self.PROTOCOL_TITLES[k] for k in [3, 7, 10, 12, 18]
-                    ]],
-                    "no": [[
+                    ],
+                    "no": [
                         self.PROTOCOL_TITLES[k] for k in [3, 7, 10, 12, 18]
-                    ]]
+                    ]
                     },
             },
 
@@ -143,18 +143,18 @@ class ModelDecisionMaker:
                     "Happy": lambda user_id, db_session, curr_session, app: self.get_happy_emotion(user_id),
                 },
                 "protocols": {
-                    "Sad": [[
+                    "Sad": [
                         self.PROTOCOL_TITLES[k] for k in [3, 7, 10, 12, 18]
-                    ]],
-                    "Angry": [[
+                    ],
+                    "Angry": [
                         self.PROTOCOL_TITLES[k] for k in [3, 7, 10, 12, 18]
-                    ]],
-                    "Anxious" : [[
+                    ],
+                    "Anxious" : [
                         self.PROTOCOL_TITLES[k] for k in [3, 7, 10, 12, 18]
-                    ]],
-                    "Happy": [[
+                    ],
+                    "Happy": [
                         self.PROTOCOL_TITLES[k] for k in [3, 7, 10, 12, 18]
-                    ]]
+                    ]
                 },
             },
 
@@ -427,7 +427,8 @@ class ModelDecisionMaker:
     def get_suggestions(self, user_id, app):
         suggestions = []
         for curr_suggestions in list(self.suggestions[user_id]):
-            suggestions.append(curr_suggestions[0])
+            x, y, z = random.choices(range(0,len(curr_suggestions)), k=3)
+            suggestions.extend([curr_suggestions[x], curr_suggestions[y], curr_suggestions[z]])
         return suggestions
 
     def clear_suggestions(self, user_id):
