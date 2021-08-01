@@ -1,4 +1,5 @@
 // Config starter code
+import React from "react";
 import { createChatBotMessage } from "react-chatbot-kit";
 
 import YesNoOptions from "./widgets/options/GeneralOptions/YesNoOptions";
@@ -13,8 +14,7 @@ const botName = "SATbot";
 const config = {
   botName: botName,
   initialMessages: [
-    createChatBotMessage(`Hello I'm ${botName}.`),
-    createChatBotMessage("What is your username?", {
+    createChatBotMessage("Please enter your username:", {
       withAvatar: true,
       delay: 50,
     }),
@@ -28,7 +28,10 @@ const config = {
     protocols: [],
     askingForProtocol: false
   },
-  customComponents: {},
+  customComponents: {
+    header: () => <div style={{ fontFamily: 'Arial', backgroundColor: '#f1f1f1', padding: "8px", borderRadius: "3px" }}>SATbot</div>
+  },
+
   widgets: [
     {
       widgetName: "YesNo",
