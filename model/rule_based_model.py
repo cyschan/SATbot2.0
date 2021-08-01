@@ -1,9 +1,7 @@
 import nltk
 
 from model.models import UserModelSession, Choice, UserModelRun, Protocol
-import pandas as pd
 import numpy as np
-import random
 from collections import deque
 import re
 import datetime
@@ -14,8 +12,6 @@ from nltk.corpus import wordnet  # noqa
 
 class ModelDecisionMaker:
     def __init__(self):
-
-        self.data = pd.read_csv('/Users/lisaxy/final_project/model/empatheticPersonas.csv', encoding='ISO-8859-1') #change path
 
         # Titles from workshops (Title 7 adapted to give more information)
         self.PROTOCOL_TITLES = [
@@ -68,7 +64,7 @@ class ModelDecisionMaker:
         self.user_choices = {}
 
         # Keys: user ids, values: scores for each question
-        #self.user_scores = {}
+        self.user_scores = {}
 
         # Keys: user ids, values: current suggested protocols
         self.suggestions = {}
@@ -86,215 +82,223 @@ class ModelDecisionMaker:
         # This could be adapted to be part of a JSON file (would need to address
         # mapping callable functions over for parsing).
 
-        self.users_names = {}
-        self.remaining_choices = {}
-
         self.QUESTIONS = {
-
-            "ask_name": {
-               "model_prompt": "If you wish, you can enter your first name (or leave blank and enter):",
-               "choices": {
-                   "open_text": lambda user_id, db_session, curr_session, app: self.save_name(user_id, app, db_session)
-               },
-               "protocols": {"open_text": []},
-           },
-
-
             "opening_prompt": {
-                "model_prompt": lambda user_id, db_session, curr_session, app: self.get_opening_prompt(user_id),
-
+                "model_prompt": "How are you feeling? "
+                + "Please tell me in as much detail as you can, "
+                + "including relevant situations that made you "
+                + "feel this way.",
                 "choices": {
-                    "open_text": lambda user_id, db_session, curr_session, app: self.determine_next_prompt_opening(user_id, app, db_session)
+                    "open_text": lambda user_id, db_session, curr_session, app: self.determine_next_prompt_opening(
+                        user_id, app, db_session
+                    )
                 },
                 "protocols": {"open_text": []},
             },
-
             "guess_emotion": {
                 "model_prompt": lambda user_id, db_session, curr_session, app: self.get_model_prompt_guess_emotion(
                     user_id
                 ),
                 "choices": {
                     "yes": {
-                        "Sad": "after_classification_negative",
-                        "Angry": "after_classification_negative",
-                        "Anxious": "after_classification_negative",
-                        "Happy": "after_classification_positive",
+                        "positive": "after_classification_positive",
+                        "neutral": "after_classification_neutral",
+                        "negative": "after_classification_negative",
                     },
                     "no": "check_emotion",
                 },
-                "protocols": {
-                    "yes": [
-                        self.PROTOCOL_TITLES[k] for k in [3, 7, 10, 12, 18]
-                    ],
-                    "no": [
-                        self.PROTOCOL_TITLES[k] for k in [3, 7, 10, 12, 18]
-                    ]
-                    },
+                "protocols": {"yes": [], "no": []},
             },
-
-
             "check_emotion": {
-                "model_prompt": lambda user_id, db_session, curr_session, app: self.get_model_prompt_check_emotion(user_id),
-
+                "model_prompt": "Thank you. Now please select an emotion below "
+                + "that describes how you feel, based on what you have said.",
                 "choices": {
-                    "Sad": lambda user_id, db_session, curr_session, app: self.get_sad_emotion(user_id),
-                    "Angry": lambda user_id, db_session, curr_session, app: self.get_angry_emotion(user_id),
-                    "Anxious": lambda user_id, db_session, curr_session, app: self.get_anxious_emotion(user_id),
-                    "Happy": lambda user_id, db_session, curr_session, app: self.get_happy_emotion(user_id),
+                    "positive": "after_classification_positive",
+                    "neutral": "after_classification_neutral",
+                    "negative": "after_classification_negative",
+                },
+                "protocols": {"positive": [], "neutral": [], "negative": []},
+            },
+            "after_classification_negative": {
+                "model_prompt": [
+                    "Thank you for letting me know. "
+                    + "Now we will ask some questions "
+                    + "to understand your situation.",
+                    "The following protocols may help: "
+                    + "Type 3 (Singing a jolly love song to the child), "
+                    + "Type 7 (Laughter for creating zest for life), "
+                    + "Type 10 (Laughing at, and with one's self), "
+                    + "Type 12 (Continuous Laughter), "
+                    + "Type 18 (Laughing at misfortunes). ",
+                    "Are you able to take the challenge now to "
+                    + "sing your favourite jolly love song or to "
+                    + "laugh as in the following protocols to "
+                    + "reduce your negative emotions?",
+                ],
+                "choices": {
+                    "yes, i would like to try one of these protocols": "continue_happiness_suggestions",
+                    "no, i would like to try something else": "event_is_specific",
                 },
                 "protocols": {
-                    "Sad": [
+                    "yes, i would like to try one of these protocols": [
                         self.PROTOCOL_TITLES[k] for k in [3, 7, 10, 12, 18]
                     ],
-                    "Angry": [
-                        self.PROTOCOL_TITLES[k] for k in [3, 7, 10, 12, 18]
-                    ],
-                    "Anxious" : [
-                        self.PROTOCOL_TITLES[k] for k in [3, 7, 10, 12, 18]
-                    ],
-                    "Happy": [
-                        self.PROTOCOL_TITLES[k] for k in [3, 7, 10, 12, 18]
-                    ]
+                    "no, i would like to try something else": [],
                 },
             },
-
-            ############# NEGATIVE EMOTIONS (SADNESS, ANGER, FEAR/ANXIETY) #############
-
-            "after_classification_negative": {
-                "model_prompt": lambda user_id, db_session, curr_session, app: self.get_model_prompt_specific_event(user_id),
-
+            "continue_happiness_suggestions": {
+                "model_prompt": "That's good! Please choose one of these protocols "
+                + "to continue, or type your own protocol number "
+                + "(1-20) below.",
+                "choices": {
+                    self.PROTOCOL_TITLES[k]: "trying_protocol"
+                    for k in self.positive_protocols
+                },
+                "protocols": {
+                    self.PROTOCOL_TITLES[k]: [self.PROTOCOL_TITLES[k]]
+                    for k in self.positive_protocols
+                },
+            },
+            "event_is_specific": {
+                "model_prompt": [
+                    "Was your emotion caused by a specific event " + "(or events)?"
+                ],
                 "choices": {
                     "yes": "event_is_recent",
-                    "no": "more_questions",
+                    "no": lambda user_id, db_session, curr_session, app: self.determine_protocols_keyword_classifiers(
+                        user_id, db_session, curr_session, app
+                    ),
+                },
+                "protocols": {"yes": [], "no": []},
+            },
+            "after_classification_positive": {
+                "model_prompt": [
+                    "That’s good! Let me suggest a " + "protocol you can attempt. ",
+                    "Here are my suggestions below. "
+                    + "Based on these suggestions, which protocol "
+                    + "would you like to attempt? Please choose one of the suggestions "
+                    + "or type your own protocol number (1-20) below.",
+                ],
+                "choices": {
+                    self.PROTOCOL_TITLES[k]: "trying_protocol"
+                    for k in self.positive_protocols
                 },
                 "protocols": {
-                    "yes": [],
-                    "no": []
+                    self.PROTOCOL_TITLES[k]: [self.PROTOCOL_TITLES[k]]
+                    for k in self.positive_protocols
                 },
             },
-
+            "after_classification_neutral": {
+                "model_prompt": [
+                    "This is fine. Let me suggest a " + "protocol you can attempt.",
+                    "Here are my suggestions below. "
+                    + "Based on these suggestions, which protocol "
+                    + "would you like to attempt? Please choose one of the suggestions "
+                    + "or type your own protocol number (1-20) below.",
+                ],
+                "choices": {
+                    self.PROTOCOL_TITLES[k]: "trying_protocol"
+                    for k in self.positive_protocols
+                },
+                "protocols": {
+                    self.PROTOCOL_TITLES[k]: [self.PROTOCOL_TITLES[k]]
+                    for k in self.positive_protocols
+                },
+            },
+            "user_found_useful": {
+                "model_prompt": "Do you feel better or worse having taken "
+                + "this protocol?",
+                "choices": {
+                    "better": "new_protocol",
+                    "worse": lambda user_id, db_session, curr_session, app: self.get_next_protocol_question(
+                        user_id, app
+                    ),
+                    "no change": lambda user_id, db_session, curr_session, app: self.get_next_protocol_question(
+                        user_id, app
+                    ),
+                },
+                "protocols": {"better": [], "worse": [], "no change": []},
+            },
             "event_is_recent": {
-                "model_prompt": lambda user_id, db_session, curr_session, app: self.get_model_prompt_event_is_recent(user_id),
-
+                "model_prompt": "Was this caused by a recent or distant event?",
                 "choices": {
-                    "It was recent": "revisiting_recent_events",
-                    "It was distant": "revisiting_distant_events",
+                    "recent": "revisiting_recent_events",
+                    "distant": "revisiting_distant_events",
                 },
-                "protocols": {
-                    "It was recent": [],
-                    "It was distant": []
-                    },
+                "protocols": {"recent": [], "distant": []},
             },
-
-            "revisiting_recent_events": {
-                "model_prompt": lambda user_id, db_session, curr_session, app: self.get_model_prompt_revisit_recent(user_id),
-
-                "choices": {
-                    "yes": "more_questions",
-                    "no": "more_questions",
-                },
-                "protocols": {
-                    "yes": [self.PROTOCOL_TITLES[7], self.PROTOCOL_TITLES[8]],
-                    "no": [self.PROTOCOL_TITLES[11]],
-                },
-            },
-
-            "revisiting_distant_events": {
-                "model_prompt": lambda user_id, db_session, curr_session, app: self.get_model_prompt_revisit_distant(user_id),
-
-                "choices": {
-                    "yes": "more_questions",
-                    "no": "more_questions",
-                },
-                "protocols": {
-                    "yes": [self.PROTOCOL_TITLES[13], self.PROTOCOL_TITLES[17]],
-                    "no": [self.PROTOCOL_TITLES[6]]
-                },
-            },
-
-            "more_questions": {
-                "model_prompt": lambda user_id, db_session, curr_session, app: self.get_model_prompt_more_questions(user_id),
-
-                "choices": {
-                    "Okay": lambda user_id, db_session, curr_session, app: self.get_next_question(user_id),
-                    "I'd rather not": "suggestions",
-                },
-                "protocols": {
-                    "Okay": [],
-                    "I'd rather not": [],
-                },
-            },
-
             "displaying_antisocial_behaviour": {
-                "model_prompt": lambda user_id, db_session, curr_session, app: self.get_model_prompt_antisocial(user_id),
-
+                "model_prompt": "Have you strongly felt or expressed any of "
+                + "the following emotions towards someone: "
+                "Envy, jealousy, greed, hatred, mistrust, "
+                "malevolence, or revengefulness?",
                 "choices": {
                     "yes": "suggestions",
-                    "no": lambda user_id, db_session, curr_session, app: self.get_next_question(user_id),
+                    "no": lambda user_id, db_session, curr_session, app: self.get_next_protocol_question(
+                        user_id, app
+                    ),
                 },
                 "protocols": {
                     "yes": [self.PROTOCOL_TITLES[13], self.PROTOCOL_TITLES[14]],
-                    "no": []
+                    "no": [],
                 },
             },
-
             "internal_persecutor_saviour": {
-                "model_prompt": lambda user_id, db_session, curr_session, app: self.get_model_prompt_saviour(user_id),
-
+                "model_prompt": "Do you believe that you should be the "
+                + "saviour of someone else? ",
                 "choices": {
                     "yes": "suggestions",
-                    "no": "internal_persecutor_victim",
+                    "no": lambda user_id, db_session, curr_session, app: self.get_next_protocol_question(
+                        user_id, app
+                    ),
                 },
-                "protocols": {
-                    "yes": self.INTERNAL_PERSECUTOR_PROTOCOLS,
-                    "no": []
-                },
+                "protocols": {"yes": self.INTERNAL_PERSECUTOR_PROTOCOLS, "no": []},
             },
-
             "internal_persecutor_victim": {
-                "model_prompt": lambda user_id, db_session, curr_session, app: self.get_model_prompt_victim(user_id),
-
+                "model_prompt": "Do you see yourself as the victim, "
+                + "blaming someone else for "
+                + "how negative you feel?",
                 "choices": {
                     "yes": "suggestions",
                     "no": "internal_persecutor_controlling",
                 },
-                "protocols": {
-                    "yes": self.INTERNAL_PERSECUTOR_PROTOCOLS,
-                    "no": []
-                },
+                "protocols": {"yes": self.INTERNAL_PERSECUTOR_PROTOCOLS, "no": []},
             },
-
             "internal_persecutor_controlling": {
-                "model_prompt": lambda user_id, db_session, curr_session, app: self.get_model_prompt_controlling(user_id),
-
-                "choices": {
-                "yes": "suggestions",
-                "no": "internal_persecutor_accusing"
-                },
-                "protocols": {
-                "yes": self.INTERNAL_PERSECUTOR_PROTOCOLS,
-                "no": []
-                },
+                "model_prompt": "Do you feel that you are trying "
+                + "to control someone?",
+                "choices": {"yes": "suggestions", "no": "internal_persecutor_accusing"},
+                "protocols": {"yes": self.INTERNAL_PERSECUTOR_PROTOCOLS, "no": []},
             },
-
             "internal_persecutor_accusing": {
-                "model_prompt": lambda user_id, db_session, curr_session, app: self.get_model_prompt_accusing(user_id),
-
+                "model_prompt": "Are you always blaming and accusing "
+                + "yourself for when something goes "
+                + "wrong?",
+                "choices": {"yes": "suggestions", "no": "internal_persecutor_saviour"},
+                "protocols": {"yes": self.INTERNAL_PERSECUTOR_PROTOCOLS, "no": []},
+            },
+            "personal_crisis": {
+                "model_prompt": "Are you undergoing a personal crisis "
+                + "(experiencing difficulties with loved ones "
+                + "e.g. falling out with friends)?",
                 "choices": {
-                "yes": "suggestions",
-                "no": lambda user_id, db_session, curr_session, app: self.get_next_question(user_id),
+                    "yes": "suggestions",
+                    "no": lambda user_id, db_session, curr_session, app: self.get_next_protocol_question(
+                        user_id, app
+                    ),
                 },
                 "protocols": {
-                "yes": self.INTERNAL_PERSECUTOR_PROTOCOLS,
-                "no": []
+                    "yes": [self.PROTOCOL_TITLES[13], self.PROTOCOL_TITLES[17]],
+                    "no": [],
                 },
             },
-
             "rigid_thought": {
-                "model_prompt": lambda user_id, db_session, curr_session, app: self.get_model_prompt_rigid_thought(user_id),
-
+                "model_prompt": "In previous conversations, have you considered "
+                + "other viewpoints presented?",
                 "choices": {
-                    "yes": lambda user_id, db_session, curr_session, app: self.get_next_question(user_id),
+                    "yes": lambda user_id, db_session, curr_session, app: self.get_next_protocol_question(
+                        user_id, app
+                    ),
                     "no": "suggestions",
                 },
                 "protocols": {
@@ -302,133 +306,116 @@ class ModelDecisionMaker:
                     "no": [self.PROTOCOL_TITLES[13], self.PROTOCOL_TITLES[19]],
                 },
             },
-
-
-            "personal_crisis": {
-                "model_prompt": lambda user_id, db_session, curr_session, app: self.get_model_prompt_personal_crisis(user_id),
-
+            "revisiting_recent_events": {
+                "model_prompt": "Have you recently attempted Protocol "
+                + "{} and found this reignited emotions of old events? ".format(
+                    self.PROTOCOL_TITLES[11]
+                ),
                 "choices": {
-                    "yes": "suggestions",
-                    "no": lambda user_id, db_session, curr_session, app: self.get_next_question(user_id),
+                    "yes": lambda user_id, db_session, curr_session, app: self.determine_protocols_keyword_classifiers(
+                        user_id, db_session, curr_session, app
+                    ),
+                    "no": "project_negative_emotion",
+                },
+                "protocols": {
+                    "yes": [self.PROTOCOL_TITLES[7], self.PROTOCOL_TITLES[8]],
+                    "no": [self.PROTOCOL_TITLES[11]],
+                },
+            },
+            "revisiting_distant_events": {
+                "model_prompt": "Have you recently attempted Protocol "
+                + "{} and found this reignited emotions of ".format(
+                    self.PROTOCOL_TITLES[6]
+                )
+                + "old events?",
+                "choices": {
+                    "yes": lambda user_id, db_session, curr_session, app: self.determine_protocols_keyword_classifiers(
+                        user_id, db_session, curr_session, app
+                    ),
+                    "no": "project_negative_emotion",
                 },
                 "protocols": {
                     "yes": [self.PROTOCOL_TITLES[13], self.PROTOCOL_TITLES[17]],
-                    "no": [],
+                    "no": [self.PROTOCOL_TITLES[6]],
                 },
             },
-
-            ################# POSITIVE EMOTION (HAPPINESS/CONTENT) #################
-
-            "after_classification_positive": {
-                "model_prompt": lambda user_id, db_session, curr_session, app: self.get_model_prompt_happy(user_id),
-
+            "project_negative_emotion": {
+                "model_prompt": "Can you project your negative emotions onto your childhood self?",
                 "choices": {
-                    "Okay": "suggestions",
-                    "No, thank you": "ending_prompt"
+                    "yes": lambda user_id, db_session, curr_session, app: self.determine_protocols_keyword_classifiers(
+                        user_id, db_session, curr_session, app
+                    ),
+                    "no": "try_to_project",
+                },
+                "protocols": {"yes": [], "no": []},
+            },
+            "try_to_project": {
+                "model_prompt": "Please take your time and try to project your negative emotion "
+                + "onto your childhood self. When you are able to do this, "
+                + "press Continue to receive your suggestions.",
+                "choices": {
+                    "continue": lambda user_id, db_session, curr_session, app: self.determine_protocols_keyword_classifiers(
+                        user_id, db_session, curr_session, app
+                    )
+                },
+                "protocols": {"continue": []},
+            },
+            "new_protocol": {
+                "model_prompt": "Would you like to try another protocol?",
+                "choices": {
+                    "Yes (Restart questions)": "opening_prompt",
+                    "Yes (Use follow-up suggestions if available)": lambda user_id, db_session, curr_session, app: self.determine_next_prompt_new_protocol(
+                        user_id, app
+                    ),
+                    "No": "ending_prompt",
                 },
                 "protocols": {
-                    "Okay": [self.PROTOCOL_TITLES[k] for k in self.positive_protocols],
-                    "No, thank you": []
+                    "Yes (Restart questions)": [],
+                    "Yes (Use follow-up suggestions if available)": [],
+                    "No": [],
                 },
             },
-
-            ############################# ALL EMOTIONS #############################
-
+            "continuing_prompt": {
+                "model_prompt": "We will now ask you to "
+                + "provide more information to be able to "
+                + "provide new suggestions.",
+                "choices": {"any": "opening_prompt"},
+                "protocols": {"any": []},
+            },
+            "ending_prompt": {
+                "model_prompt": "Thank you for taking part! "
+                + "Please refresh the page to start again.",
+                "choices": {"any": "opening_prompt"},
+                "protocols": {"any": []},
+            },
+            "trying_protocol": {
+                "model_prompt": "Please try to perform this protocol now. "
+                + "Press Continue when you have finished and "
+                + "you are ready to proceed.",
+                "choices": {"continue": "user_found_useful"},
+                "protocols": {"continue": []},
+            },
             "suggestions": {
-                "model_prompt": lambda user_id, db_session, curr_session, app: self.get_model_prompt_suggestions(user_id),
-
+                "model_prompt": "Here are my suggestions below. "
+                + "Based on these suggestions, which protocol "
+                + "would you like to attempt? Please choose one of the suggestions "
+                + "or type your own protocol number (1-20) below.",
                 "choices": {
                     self.PROTOCOL_TITLES[k]: "trying_protocol"
-                    for k in self.protocols_to_suggest
+                    for k in self.positive_protocols
                 },
                 "protocols": {
                     self.PROTOCOL_TITLES[k]: [self.PROTOCOL_TITLES[k]]
                     for k in self.positive_protocols
                 },
             },
-
-            "trying_protocol": {
-                "model_prompt": lambda user_id, db_session, curr_session, app: self.get_model_prompt_trying_protocol(user_id),
-
-                "choices": {"continue": "user_found_useful"},
-                "protocols": {"continue": []},
-            },
-
-            "user_found_useful": {
-                "model_prompt": lambda user_id, db_session, curr_session, app: self.get_model_prompt_found_useful(user_id),
-
-                "choices": {
-                    "Better": "new_protocol_better",
-                    "Worse": "new_protocol_worse",
-                },
-                "protocols": {
-                    "Better": [],
-                    "Worse": []
-                },
-            },
-
-            "new_protocol_better": {
-                "model_prompt": lambda user_id, db_session, curr_session, app: self.get_model_prompt_new_better(user_id),
-
-                "choices": {
-                    "Yes (Restart questions)": "opening_prompt",
-                    "Yes (Use follow-up suggestions if available)": lambda user_id, db_session, curr_session, app: self.determine_next_prompt_new_protocol(
-                        user_id, app
-                    ),
-                    "No": "ending_prompt",
-                },
-                "protocols": {
-                    "Yes (Restart questions)": [],
-                    "Yes (Use follow-up suggestions if available)": [],
-                    "No": [],
-                },
-            },
-
-            "new_protocol_worse": {
-                "model_prompt": lambda user_id, db_session, curr_session, app: self.get_model_prompt_new_worse(user_id),
-
-                "choices": {
-                    "Yes (Restart questions)": "opening_prompt",
-                    "Yes (Use follow-up suggestions if available)": lambda user_id, db_session, curr_session, app: self.determine_next_prompt_new_protocol(
-                        user_id, app
-                    ),
-                    "No": "ending_prompt",
-                },
-                "protocols": {
-                    "Yes (Restart questions)": [],
-                    "Yes (Use follow-up suggestions if available)": [],
-                    "No": [],
-                },
-            },
-
-            "ending_prompt": {
-                "model_prompt": lambda user_id, db_session, curr_session, app: self.get_model_prompt_ending(user_id),
-
-                "choices": {"any": "opening_prompt"},
-                "protocols": {"any": []}
-                },
         }
         self.QUESTION_KEYS = list(self.QUESTIONS.keys())
-
-    def clear_names(self, user_id):
-        self.users_names[user_id] = ""
-
-    def initialise_remaining_choices(self, user_id):
-        self.remaining_choices[user_id] = ["displaying_antisocial_behaviour", "internal_persecutor_saviour", "personal_crisis", "rigid_thought"]
-
-    def save_name(self, user_id, app, db_session):
-        try:
-            user_response = self.user_choices[user_id]["choices_made"]["ask_name"]
-        except:  # noqa
-            user_response = ""
-        self.users_names[user_id] = user_response
-        return "opening_prompt"
 
     def get_suggestions(self, user_id, app):
         suggestions = []
         for curr_suggestions in list(self.suggestions[user_id]):
-            x, y, z = random.choices(range(0,len(curr_suggestions)), k=3)
-            suggestions.extend([curr_suggestions[x], curr_suggestions[y], curr_suggestions[z]])
+            suggestions.append(curr_suggestions[0])
         return suggestions
 
     def clear_suggestions(self, user_id):
@@ -464,20 +451,69 @@ class ModelDecisionMaker:
     # Takes next item in queue, or moves on to suggestions
     # if all have been checked
 
-    def get_opening_prompt(self, user_id):
-        if self.users_names[user_id] == "":
-            opening_prompt = ["Hello. ", "How are you feeling today?"]
-        else:
-            opening_prompt = ["Hello " + self.users_names[user_id] + ". ", "How are you feeling today?"]
-        return opening_prompt
+    def get_next_protocol_question(self, user_id, app):
 
-    def get_next_question(self, user_id):
-        if self.remaining_choices[user_id] == []:
+        current_choice = self.user_choices[user_id]["choices_made"]["current_choice"]
+        if current_choice == "user_found_useful":
+
+            current_emotion = self.user_emotions[user_id]
+            if current_emotion == "negative":
+
+                # Check progress
+                choices_made = self.user_choices[user_id]["choices_made"].keys()
+                # Case: user has already tried a further suggestion
+                if (
+                    "displaying_antisocial_behaviour" in choices_made
+                    or "internal_persecutor_saviour" in choices_made
+                    or "internal_persecutor_victim" in choices_made
+                    or "internal_persecutor_controlling" in choices_made
+                    or "internal_persecutor_accusing" in choices_made
+                    or "personal_crisis" in choices_made
+                    or "rigid_thought" in choices_made
+                ):
+                    return "new_protocol"
+
+                # Case: user has not attempted either of protocols 6/11
+                if (
+                    "revisiting_recent_events" not in choices_made
+                    and "revisiting_distant_events" not in choices_made
+                ):
+                    self.clear_suggestions(user_id)
+                    return "event_is_specific"
+                if (
+                    "revisiting_recent_events" in choices_made
+                    and self.user_choices[user_id]["choices_made"][
+                        "revisiting_recent_events"
+                    ]
+                    == "No"
+                ):
+
+                    return self.reordered_protocol_questions[user_id].popleft()
+
+                if (
+                    "revisiting_distant_events" in choices_made
+                    and self.user_choices[user_id]["choices_made"][
+                        "revisiting_distant_events"
+                    ]
+                    == "No"
+                ):
+
+                    return self.reordered_protocol_questions[user_id].popleft()
+
+            return "new_protocol"
+
+        if len(self.reordered_protocol_questions[user_id]) == 0:
+
+            # Default case
+            if (
+                len(self.suggestions[user_id]) == 1
+                and self.suggestions[user_id][0][0] != self.PROTOCOL_TITLES[13]
+            ):
+                self.suggestions[user_id].append(
+                    deque([self.PROTOCOL_TITLES[13], self.PROTOCOL_TITLES[14]])
+                )
             return "suggestions"
-        else:
-            selected_choice = np.random.choice(self.remaining_choices[user_id])
-            self.remaining_choices[user_id].remove(selected_choice)
-            return selected_choice
+        return self.reordered_protocol_questions[user_id].popleft()
 
     def add_to_reordered_protocols(self, user_id, next_protocol):
         self.reordered_protocol_questions[user_id].append(next_protocol)
@@ -499,103 +535,279 @@ class ModelDecisionMaker:
             self.recent_protocols.popleft()
         self.recent_protocols.append(recent_protocol)
 
+    def calculate_score(self, user_input, for_keywords, against_keywords):
+        # Punctuation removal/tokenisation
 
-    def determine_next_prompt_opening(self, user_id, app, db_session):
-        emotion = np.random.choice(["Happy", "Sad", "Angry", "Anxious"]) #random choice to be replaced with emotion classifier
-        self.guess_emotion_predictions[user_id] = emotion
-        self.user_emotions[user_id] = emotion
-        return "guess_emotion"
+        score = 0
+        for word in user_input:
+            if word in for_keywords:
+                score += 1
 
+            elif word in against_keywords:
+                score -= 1
+
+        return score
 
     def get_model_prompt_guess_emotion(self, user_id):
-        my_string = np.random.choice(self.data["All emotions - From what you have said I believe you are feeling {}. Is this correct?"].dropna().tolist())
-        return my_string.format(self.guess_emotion_predictions[user_id].lower())
+        return "Based on what you have said, I believe you are: {}. Is this correct?".format(
+            self.guess_emotion_predictions[user_id]
+        )
 
+    def determine_next_prompt_opening(self, user_id, app, db_session):
+        emotion_scores = self.calculate_emotion_scores(user_id, app)
 
-    def get_model_prompt_check_emotion(self, user_id):
-        return np.random.choice(self.data["All emotions - I am sorry. Please select from the emotions below the one that best reflects what you are feeling:"].dropna().tolist())
+        (
+            happy_score,
+            neutral_score,
+            sad_score,
+            angry_score,
+            anxious_score,
+            scared_score,
+        ) = emotion_scores
 
+        emotion_detected = False
+        for emotion_score in emotion_scores:
+            if emotion_score > 0:
+                emotion_detected = True
+                break
 
-    def get_sad_emotion(self, user_id):
-        self.guess_emotion_predictions[user_id] = "Sad"
-        self.user_emotions[user_id] = "Sad"
-        return "after_classification_negative"
-    def get_angry_emotion(self, user_id):
-        self.guess_emotion_predictions[user_id] = "Angry"
-        self.user_emotions[user_id] = "Angry"
-        return "after_classification_negative"
-    def get_anxious_emotion(self, user_id):
-        self.guess_emotion_predictions[user_id] = "Anxious"
-        self.user_emotions[user_id] = "Anxious"
-        return "after_classification_negative"
-    def get_happy_emotion(self, user_id):
-        self.guess_emotion_predictions[user_id] = "Happy"
-        self.user_emotions[user_id] = "Happy"
-        return "after_classification_positive"
+        current_run = UserModelRun.query.filter_by(
+            id=self.current_run_ids[user_id]
+        ).first()
+        current_run.emotion_happy_score = happy_score
+        current_run.emotion_neutral_score = neutral_score
+        current_run.emotion_sad_score = sad_score
+        current_run.emotion_angry_score = angry_score
+        current_run.emotion_anxious_score = anxious_score
+        current_run.emotion_scared_score = scared_score
+        db_session.commit()
 
+        if emotion_detected:
+            max_pos = np.argmax(emotion_scores)
 
-    def get_model_prompt_saviour(self, user_id):
-        base_prompt = self.user_emotions[user_id] + " - Do you believe that you should be the saviour of someone else?"
-        return np.random.choice(self.data[base_prompt].dropna().tolist())
-    def get_model_prompt_victim(self, user_id):
-        base_prompt = self.user_emotions[user_id] + " - Do you see yourself as the victim, blaming someone else for how negative you feel?"
-        return np.random.choice(self.data[base_prompt].dropna().tolist())
-    def get_model_prompt_controlling(self, user_id):
-        base_prompt = self.user_emotions[user_id] + " - Do you feel that you are trying to control someone?"
-        return np.random.choice(self.data[base_prompt].dropna().tolist())
-    def get_model_prompt_accusing(self, user_id):
-        base_prompt = self.user_emotions[user_id] + " - Are you always blaming and accusing yourself for when something goes wrong?"
-        return np.random.choice(self.data[base_prompt].dropna().tolist())
-    def get_model_prompt_specific_event(self, user_id):
-        base_prompt = self.user_emotions[user_id] + " - Was this caused by a specific event/s?"
-        return np.random.choice(self.data[base_prompt].dropna().tolist())
-    def get_model_prompt_event_is_recent(self, user_id):
-        base_prompt = self.user_emotions[user_id] + " - Was this caused by a recent or distant event (or events)?"
-        return np.random.choice(self.data[base_prompt].dropna().tolist())
-    def get_model_prompt_revisit_recent(self, user_id):
-        base_prompt = self.user_emotions[user_id] + " - Have you recently attempted protocol 11 and found this reignited unmanageable emotions as a result of old events?"
-        return np.random.choice(self.data[base_prompt].dropna().tolist())
-    def get_model_prompt_revisit_distant(self, user_id):
-        base_prompt = self.user_emotions[user_id] + " - Have you recently attempted protocol 6 and found this reignited unmanageable emotions as a result of old events?"
-        return np.random.choice(self.data[base_prompt].dropna().tolist())
-    def get_model_prompt_more_questions(self, user_id):
-        base_prompt = self.user_emotions[user_id] + " - Thank you. Now I will ask some questions to understand your situation."
-        return np.random.choice(self.data[base_prompt].dropna().tolist())
-    def get_model_prompt_antisocial(self, user_id):
-        base_prompt = self.user_emotions[user_id] + " - Have you strongly felt or expressed any of the following emotions towards someone:"
-        return [np.random.choice(self.data[base_prompt].dropna().tolist()), "Envy, jealousy, greed, hatred, mistrust, malevolence, or revengefulness?"]
-    def get_model_prompt_rigid_thought(self, user_id):
-        base_prompt = self.user_emotions[user_id] + " - In previous conversations, have you considered other viewpoints presented?"
-        return np.random.choice(self.data[base_prompt].dropna().tolist())
-    def get_model_prompt_personal_crisis(self, user_id):
-        base_prompt = self.user_emotions[user_id] + " - Are you undergoing a personal crisis (experiencing difficulties with loved ones e.g. falling out with friends)?"
-        return np.random.choice(self.data[base_prompt].dropna().tolist())
-    def get_model_prompt_happy(self, user_id):
-        return np.random.choice(self.data["Happy - That's Good! Let me recommend a protocol you can attempt."].dropna().tolist())
-    def get_model_prompt_suggestions(self, user_id):
-        return np.random.choice(self.data["All emotions - Here are my recommendations, please select the protocol that you would like to attempt"].dropna().tolist())
-    def get_model_prompt_trying_protocol(self, user_id):
-        return np.random.choice(self.data["All emotions - Please try to go through this protocol now. When you finish, press 'continue'"].dropna().tolist())
-    def get_model_prompt_found_useful(self, user_id):
-        return np.random.choice(self.data["All emotions - Do you feel better or worse after having taken this protocol?"].dropna().tolist())
-    def get_model_prompt_new_better(self, user_id):
-        return np.random.choice(self.data["All emotions - Would you like to attempt another protocol? (Patient feels better)"].dropna().tolist())
-    def get_model_prompt_new_worse(self, user_id):
-        return np.random.choice(self.data["All emotions - Would you like to attempt another protocol? (Patient feels worse)"].dropna().tolist())
-    def get_model_prompt_ending(self, user_id):
-        return [np.random.choice(self.data["All emotions - Thank you for taking part. See you soon"].dropna().tolist()), "You have been disconnected. Refresh the page if you would like to start over."]
+            # We stop when we find the first relevant case.
+            if max_pos == 0:
+                self.guess_emotion_predictions[user_id] = "Happy"
 
+            elif max_pos == 1:
+                self.guess_emotion_predictions[user_id] = "Neutral"
 
+            elif max_pos == 2:
+                self.guess_emotion_predictions[user_id] = "Sad"
+
+            elif max_pos == 3:
+                self.guess_emotion_predictions[user_id] = "Angry"
+            elif max_pos == 4:
+                self.guess_emotion_predictions[user_id] = "Anxious"
+            elif max_pos == 5:
+                self.guess_emotion_predictions[user_id] = "Scared"
+
+            return "guess_emotion"
+        else:
+            return "check_emotion"
 
     def determine_next_prompt_new_protocol(self, user_id, app):
         try:
             self.suggestions[user_id]
         except KeyError:
             self.suggestions[user_id] = []
+
         if len(self.suggestions[user_id]) > 0:
             return "suggestions"
+
         return "opening_prompt"
 
+    def extract_for_and_against_keywords(
+        self, starting_for_keywords, starting_against_keywords
+    ):
+        for_keywords = starting_for_keywords
+        against_keywords = starting_against_keywords
+        for i in range(len(starting_for_keywords)):
+            word = starting_for_keywords[i]
+            for syn in wordnet.synsets(word):
+                for lemma in syn.lemmas():
+                    # Adds lemmas to for_keywords
+                    for_keywords.append(lemma.name())
+                    if lemma.antonyms():
+                        for antonym in lemma.antonyms():
+                            against_keywords.append(antonym.name())
+
+        return set(for_keywords), set(against_keywords)
+
+    def detect_happy(self, user_input):
+        # Note: synonym included for for_keywords is OK so this
+        # will overlap with detect_neutral (even with adding to against_keywords)
+        # but it is hard to detect a neutral emotion with keywords in any case.
+        starting_for_keywords = [
+            "good",
+            "happy",
+            "fine",
+            "well",
+            "delighted",
+            "great",
+            "positive",
+            "decent",
+        ]
+        starting_against_keywords = [
+            "sad",
+            "unhappy",
+            "angry",
+            "scared",
+            "anxious",
+            "upset",
+            "ok",
+        ]
+
+        # Keywords for detecting and not detecting the behaviour, respectively
+        for_keywords, against_keywords = self.extract_for_and_against_keywords(
+            starting_for_keywords, starting_against_keywords
+        )
+
+        return self.calculate_score(user_input, for_keywords, against_keywords)
+
+    def detect_neutral(self, user_input):
+
+        starting_for_keywords = ["ok", "neutral"]
+        starting_against_keywords = [
+            "sad",
+            "angry",
+            "scared",
+            "anxious",
+            "upset",
+            "happy",
+        ]
+
+        # Keywords for detecting and not detecting the behaviour, respectively
+        for_keywords, against_keywords = self.extract_for_and_against_keywords(
+            starting_for_keywords, starting_against_keywords
+        )
+
+        return self.calculate_score(user_input, for_keywords, against_keywords)
+
+    def detect_sad(self, user_input):
+        starting_for_keywords = ["bad", "sad", "unhappy", "depressed"]
+        starting_against_keywords = [
+            "neutral",
+            "angry",
+            "scared",
+            "anxious",
+            "happy",
+            "worried",
+            "not",
+        ]
+
+        # Keywords for detecting and not detecting the behaviour, respectively
+        for_keywords, against_keywords = self.extract_for_and_against_keywords(
+            starting_for_keywords, starting_against_keywords
+        )
+
+        return self.calculate_score(user_input, for_keywords, against_keywords)
+
+    def detect_angry(self, user_input):
+        starting_for_keywords = ["angry", "furious", "rage"]
+        starting_against_keywords = [
+            "neutral",
+            "upset",
+            "depressed",
+            "scared",
+            "anxious",
+            "worried",
+            "happy",
+        ]
+
+        # Keywords for detecting and not detecting the behaviour, respectively
+        for_keywords, against_keywords = self.extract_for_and_against_keywords(
+            starting_for_keywords, starting_against_keywords
+        )
+
+        return self.calculate_score(user_input, for_keywords, against_keywords)
+
+    def detect_anxious(self, user_input):
+        starting_for_keywords = ["anxious", "worried"]
+        starting_against_keywords = ["neutral", "upset", "depressed", "scared", "happy"]
+
+        # Keywords for detecting and not detecting the behaviour, respectively
+        for_keywords, against_keywords = self.extract_for_and_against_keywords(
+            starting_for_keywords, starting_against_keywords
+        )
+
+        return self.calculate_score(user_input, for_keywords, against_keywords)
+
+    def detect_scared(self, user_input):
+        starting_for_keywords = ["scared", "afraid"]
+        starting_against_keywords = ["neutral", "upset", "depressed", "happy"]
+
+        # Keywords for detecting and not detecting the behaviour, respectively
+        for_keywords, against_keywords = self.extract_for_and_against_keywords(
+            starting_for_keywords, starting_against_keywords
+        )
+
+        return self.calculate_score(user_input, for_keywords, against_keywords)
+
+    # Classifiers
+    def detect_antisocial_behaviour(self, user_input):
+        # for => indicates antisocial behaviour
+        starting_for_keywords = [
+            "envy",
+            "jealousy",
+            "hate",
+            "greed",
+            "mistrust",
+            "controlling",
+            "revenge",
+            "payback",
+        ]
+        starting_against_keywords = ["love", "trust"]
+
+        # Keywords for detecting and not detecting the behaviour, respectively
+        for_keywords, against_keywords = self.extract_for_and_against_keywords(
+            starting_for_keywords, starting_against_keywords
+        )
+
+        return self.calculate_score(user_input, for_keywords, against_keywords)
+
+    def detect_internal_persecutor_behaviour(self, user_input):
+        starting_for_keywords = ["persecute", "victim", "rescue", "save", "blame"]
+        starting_against_keywords = []
+
+        for_keywords, against_keywords = self.extract_for_and_against_keywords(
+            starting_for_keywords, starting_against_keywords
+        )
+        return self.calculate_score(user_input, for_keywords, against_keywords)
+
+    def detect_personal_crisis(self, user_input):
+        starting_for_keywords = [
+            "relationship",
+            "wife",
+            "husband",
+            "partner",
+            "sibling",
+            "mother",
+            "father",
+            "family",
+            "friend",
+            "brother",
+            "sister",
+        ]
+        starting_against_keywords = []
+
+        for_keywords, against_keywords = self.extract_for_and_against_keywords(
+            starting_for_keywords, starting_against_keywords
+        )
+        return self.calculate_score(user_input, for_keywords, against_keywords)
+
+    def detect_rigid_thought_process(self, user_input):
+        starting_for_keywords = ["certain", "right", "always"]
+        starting_against_keywords = ["other", "sometimes", "maybe", "consider"]
+
+        for_keywords, against_keywords = self.extract_for_and_against_keywords(
+            starting_for_keywords, starting_against_keywords
+        )
+        return self.calculate_score(user_input, for_keywords, against_keywords)
+
+    # Will save all 4 scores to db for current interaction
+    def save_current_scores(self):
+        pass
 
     def determine_positive_protocols(self, user_id, app):
         protocol_counts = {}
@@ -647,14 +859,88 @@ class ModelDecisionMaker:
     def determine_protocols_keyword_classifiers(
         self, user_id, db_session, curr_session, app
     ):
+        scores = self.calculate_scores(user_id, app)
+
+        (
+            antisocial_score,
+            internal_persecutor_score,
+            personal_crisis_score,
+            rigid_thought_score,
+        ) = scores
+        self.user_scores[user_id] = scores
+
+        # Saves scores for current run
+        current_run = UserModelRun.query.filter_by(
+            id=self.current_run_ids[user_id]
+        ).first()
+        current_run.antisocial_score = antisocial_score
+        current_run.internal_persecutor_score = internal_persecutor_score
+        current_run.personal_crisis_score = personal_crisis_score
+        current_run.rigid_thought_score = rigid_thought_score
+        db_session.commit()
 
         # We add "suggestions" first, and in the event there are any left over we use those, otherwise we divert past it.
         self.add_to_reordered_protocols(user_id, "suggestions")
+
+        min_value = min(scores)
+        for i in range(len(scores)):
+            max_pos = np.argmax(scores)
+
+            # We stop when we find the first relevant case.
+            if max_pos == 0:
+                self.add_to_reordered_protocols(
+                    user_id, "displaying_antisocial_behaviour"
+                )
+
+            elif max_pos == 1:
+                self.add_to_reordered_protocols(user_id, "internal_persecutor_victim")
+
+            elif max_pos == 2:
+                self.add_to_reordered_protocols(user_id, "personal_crisis")
+
+            elif max_pos == 3:
+                self.add_to_reordered_protocols(user_id, "rigid_thought")
+
+            # Sets to below min value as it has now been checked
+            scores[max_pos] = min_value - 1
 
         # Default case: user should review protocols 13 and 14.
         self.add_to_next_protocols([self.PROTOCOL_TITLES[13], self.PROTOCOL_TITLES[14]])
         return self.get_next_protocol_question(user_id, app)
 
+    def calculate_emotion_scores(self, user_id, app):
+        try:
+            user_response = self.user_choices[user_id]["choices_made"]["opening_prompt"]
+        except:  # noqa
+            user_response = ""
+        user_input = user_response.lower()
+        tokenised_input = re.findall(r"[\w']+", user_input)
+
+        scores = [
+            self.detect_happy(tokenised_input),
+            self.detect_neutral(tokenised_input),
+            self.detect_sad(tokenised_input),
+            self.detect_angry(tokenised_input),
+            self.detect_anxious(tokenised_input),
+            self.detect_scared(tokenised_input),
+        ]
+
+        return scores
+
+    def calculate_scores(self, user_id, app):
+        current_user_choices = self.user_choices[user_id]
+
+        # Convert to lowercase
+        user_input = current_user_choices["choices_made"]["opening_prompt"].lower()
+        tokenised_input = re.findall(r"[\w']+", user_input)
+        scores = [
+            self.detect_antisocial_behaviour(tokenised_input),
+            self.detect_internal_persecutor_behaviour(tokenised_input),
+            self.detect_personal_crisis(tokenised_input),
+            self.detect_rigid_thought_process(tokenised_input),
+        ]
+
+        return scores
 
     def update_conversation(self, user_id, new_dialogue, db_session, app):
         try:
@@ -676,7 +962,6 @@ class ModelDecisionMaker:
             db_session.add(curr_session)
             db_session.commit()
             self.user_choices[user_id]["current_session_id"] = curr_session.id
-
 
     def save_current_choice(
         self, user_id, input_type, user_choice, user_session, db_session, app
@@ -702,7 +987,7 @@ class ModelDecisionMaker:
         except KeyError:
             self.user_choices[user_id]["choices_made"] = {}
 
-        if current_choice == "ask_name":
+        if current_choice == "opening_prompt":
             self.clear_suggestions(user_id)
             self.user_choices[user_id]["choices_made"] = {}
             self.create_new_run(user_id, db_session, user_session)
@@ -715,9 +1000,39 @@ class ModelDecisionMaker:
         # prompt_to_use = curr_prompt
         if callable(curr_prompt):
             curr_prompt = curr_prompt(user_id, db_session, user_session, app)
-
-        #removed stuff here
-
+        if (
+            current_choice == "suggestions"
+            or current_choice == "continue_happiness_suggestions"
+        ):
+            curr_prompt += "["
+            for curr_protocols in self.suggestions[user_id]:
+                curr_prompt += str(curr_protocols[0]) + ", "
+            curr_prompt += "]"
+            self.update_conversation(
+                user_id,
+                "Model:{} \nUser:{} \n".format(curr_prompt, user_choice),
+                db_session,
+                app,
+            )
+        elif (
+            current_choice == "after_classification_positive"
+            or current_choice == "after_classification_neutral"
+        ):
+            last_prompt = curr_prompt[len(curr_prompt) - 1]
+            last_prompt += "["
+            for curr_protocols in self.suggestions[user_id]:
+                last_prompt += str(curr_protocols[0]) + ", "
+            last_prompt += "]"
+            prompts_to_update = []
+            for i in range(len(curr_prompt) - 1):
+                prompts_to_update.append(curr_prompt[i])
+            prompts_to_update.append(last_prompt)
+            self.update_conversation(
+                user_id,
+                "Model:{} \nUser:{} \n".format(prompts_to_update, user_choice),
+                db_session,
+                app,
+            )
         else:
             self.update_conversation(
                 user_id,
@@ -729,18 +1044,15 @@ class ModelDecisionMaker:
         # Case: update suggestions for next attempt by removing relevant one
         if (
             current_choice == "suggestions"
+            or current_choice == "after_classification_positive"
+            or current_choice == "after_classification_neutral"
+            or current_choice == "continue_happiness_suggestions"
         ):
-        #     if current_choice == "after_classification_happy":
-        #         self.user_emotions[user_id] = "Happy"
-        #
-        #     elif current_choice == "after_classification_sad":
-        #         self.user_emotions[user_id] = "Sad"
-        #
-        #     elif current_choice == "after_classification_angry":
-        #         self.user_emotions[user_id] = "Angry"
-        #
-        #     elif current_choice == "after_classification_scared":
-        #         self.user_emotions[user_id] = "Anxious"
+
+            if current_choice == "after_classification_positive":
+                self.user_emotions[user_id] = "positive"
+            elif current_choice == "after_classification_neutral":
+                self.user_emotions[user_id] = "neutral"
 
             # PRE: user_choice is a string representing a number from 1-20,
             # or the title for the corresponding protocol
@@ -768,7 +1080,10 @@ class ModelDecisionMaker:
                         self.suggestions[user_id].pop(i)
                     break
 
-        # PRE: User choice is string in ["Better", "Worse"]
+        elif current_choice == "after_classification_negative":
+            self.user_emotions[user_id] = "negative"
+
+        # PRE: User choice is string in ["Better", "Worse", "No Change"]
         elif current_choice == "user_found_useful":
             current_protocol = Protocol.query.filter_by(
                 id=self.current_protocol_ids[user_id]
@@ -818,18 +1133,18 @@ class ModelDecisionMaker:
         if input_type != "open_text":
             if (
                 current_choice != "suggestions"
-                and current_choice != "event_is_recent"
-                and current_choice != "more_questions"
                 and current_choice != "after_classification_positive"
-                and current_choice != "user_found_useful"
-                and current_choice != "check_emotion"
-                and current_choice != "new_protocol_better"
-                and current_choice != "new_protocol_worse"
+                and current_choice != "after_classification_neutral"
+                and current_choice != "continue_happiness_suggestions"
+                and current_choice != "new_protocol"
             ):
                 user_choice = user_choice.lower()
 
             if (
                 current_choice == "suggestions"
+                or current_choice == "after_classification_positive"
+                or current_choice == "after_classification_neutral"
+                or current_choice == "continue_happiness_suggestions"
             ):
                 try:
                     current_protocol = self.TITLE_TO_PROTOCOL[user_choice]
@@ -840,18 +1155,15 @@ class ModelDecisionMaker:
                 protocols_chosen = current_protocols[protocol_choice]
 
             elif current_choice == "check_emotion":
-                if user_choice == "Sad":
-                    next_choice = current_choice_for_question["Sad"]
-                    protocols_chosen = current_protocols["Sad"]
-                elif user_choice == "Angry":
-                    next_choice = current_choice_for_question["Angry"]
-                    protocols_chosen = current_protocols["Angry"]
-                elif user_choice == "Anxious":
-                    next_choice = current_choice_for_question["Anxious"]
-                    protocols_chosen = current_protocols["Anxious"]
+                if user_choice == "happy":
+                    next_choice = current_choice_for_question["positive"]
+                    protocols_chosen = current_protocols["positive"]
+                elif user_choice == "neutral":
+                    next_choice = current_choice_for_question["neutral"]
+                    protocols_chosen = current_protocols["neutral"]
                 else:
-                    next_choice = current_choice_for_question["Happy"]
-                    protocols_chosen = current_protocols["Happy"]
+                    next_choice = current_choice_for_question["negative"]
+                    protocols_chosen = current_protocols["negative"]
             else:
                 next_choice = current_choice_for_question[user_choice]
                 protocols_chosen = current_protocols[user_choice]
@@ -864,14 +1176,12 @@ class ModelDecisionMaker:
             next_choice = next_choice(user_id, db_session, user_session, app)
 
         if current_choice == "guess_emotion" and user_choice.lower() == "yes":
-            if self.guess_emotion_predictions[user_id] == "Sad":
-                next_choice = next_choice["Sad"]
-            elif self.guess_emotion_predictions[user_id] == "Angry":
-                next_choice = next_choice["Angry"]
-            elif self.guess_emotion_predictions[user_id] == "Anxious":
-                next_choice = next_choice["Anxious"]
+            if self.guess_emotion_predictions[user_id] == "Happy":
+                next_choice = next_choice["positive"]
+            elif self.guess_emotion_predictions[user_id] == "Neutral":
+                next_choice = next_choice["neutral"]
             else:
-                next_choice = next_choice["Happy"]
+                next_choice = next_choice["negative"]
 
         if callable(protocols_chosen):
             protocols_chosen = protocols_chosen(user_id, db_session, user_session, app)
@@ -880,18 +1190,42 @@ class ModelDecisionMaker:
             next_prompt = next_prompt(user_id, db_session, user_session, app)
         if (
             len(protocols_chosen) > 0
+            and current_choice != "after_classification_positive"
+            and current_choice != "after_classification_neutral"
+            and current_choice != "continue_happiness_suggestions"
             and current_choice != "suggestions"
         ):
             self.update_suggestions(user_id, protocols_chosen, app)
 
         # Case: new suggestions being created after first protocol attempted
-        if next_choice == "ask_name":
+        if next_choice == "opening_prompt":
             self.clear_suggestions(user_id)
             self.clear_emotion_scores(user_id)
             self.create_new_run(user_id, db_session, user_session)
 
         if next_choice == "suggestions":
             next_choices = self.get_suggestions(user_id, app)
+
+        elif (
+            next_choice == "after_classification_positive"
+            or next_choice == "after_classification_neutral"
+        ):
+            self.clear_suggestions(user_id)
+            next_choices = self.determine_positive_protocols(user_id, app)
+            self.update_suggestions(user_id, next_choices[0], app)
+            self.update_suggestions(user_id, next_choices[1], app)
+            self.update_suggestions(user_id, next_choices[2], app)
+
+        elif next_choice == "continue_happiness_suggestions":
+            self.clear_suggestions(user_id)
+            next_choices = list(
+                self.QUESTIONS["after_classification_negative"]["protocols"][
+                    user_choice
+                ]
+            )
+
+            for choice in next_choices:
+                self.update_suggestions(user_id, choice, app)
 
         else:
             next_choices = list(self.QUESTIONS[next_choice]["choices"].keys())
