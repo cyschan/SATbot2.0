@@ -15,7 +15,7 @@ class ActionProvider {
       username: username,
     }));
     const messages = this.createChatBotMessage(
-      "Please enter your password.",
+      "Please enter your password:",
       {
         withAvatar: true,
       }
@@ -122,7 +122,7 @@ class ActionProvider {
     } else if (userOptions.length === 3 && userOptions[0] === "better" && userOptions[1] === "worse" && userOptions[2] === "no change") {
       optionsToShow = "Feedback"
     } else {
-      // Protocol case 
+      // Protocol case
       optionsToShow = "Protocol"
       this.setState((state) => ({
         ...state,
@@ -167,7 +167,7 @@ class ActionProvider {
     this.addMessageToBotState(message);
 
 
-    // Ignores input type above and manually defines; other cases will need an if check for this 
+    // Ignores input type above and manually defines; other cases will need an if check for this
     let input_type = ["positive", "neutral", "negative"]
     const dataToSend = {
       user_id: userID,
