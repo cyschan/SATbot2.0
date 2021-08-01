@@ -19,7 +19,7 @@ class ModelDecisionMaker:
 
         # Titles from workshops (Title 7 adapted to give more information)
         self.PROTOCOL_TITLES = [
-            "0: No protocol",
+            "0: None",
             "1: Connecting with the Child [Week 1]",
             "2: Laughing at our Two Childhood Pictures [Week 1]",
             "3: Falling in Love with the Child [Week 2]",
@@ -222,7 +222,7 @@ class ModelDecisionMaker:
                 },
                 "protocols": {
                     "yes": [self.PROTOCOL_TITLES[13], self.PROTOCOL_TITLES[14]],
-                    "no": []
+                    "no": [self.PROTOCOL_TITLES[13], self.PROTOCOL_TITLES[14]],#change here
                 },
             },
 
@@ -274,7 +274,7 @@ class ModelDecisionMaker:
                 },
                 "protocols": {
                 "yes": self.INTERNAL_PERSECUTOR_PROTOCOLS,
-                "no": []
+                "no": [self.PROTOCOL_TITLES[13], self.PROTOCOL_TITLES[14]],#change here
                 },
             },
 
@@ -286,7 +286,7 @@ class ModelDecisionMaker:
                     "no": "suggestions",
                 },
                 "protocols": {
-                    "yes": [],
+                    "yes": [self.PROTOCOL_TITLES[13], self.PROTOCOL_TITLES[14]],#change here,
                     "no": [self.PROTOCOL_TITLES[13], self.PROTOCOL_TITLES[19]],
                 },
             },
@@ -301,7 +301,7 @@ class ModelDecisionMaker:
                 },
                 "protocols": {
                     "yes": [self.PROTOCOL_TITLES[13], self.PROTOCOL_TITLES[17]],
-                    "no": [],
+                    "no": [self.PROTOCOL_TITLES[13], self.PROTOCOL_TITLES[14]],#change here,
                 },
             },
 
@@ -485,10 +485,10 @@ class ModelDecisionMaker:
 
     def get_restart_prompt(self, user_id):
         if self.users_names[user_id] == "":
-            opening_prompt = ["Please tell me again, how are you feeling today?"]
+            restart_prompt = ["Please tell me again, how are you feeling today?"]
         else:
-            opening_prompt = ["Please tell me again, " + self.users_names[user_id] + ", how are you feeling today?"]
-        return opening_prompt
+            restart_prompt = ["Please tell me again, " + self.users_names[user_id] + ", how are you feeling today?"]
+        return restart_prompt
 
 
     def get_next_question(self, user_id):
