@@ -209,7 +209,7 @@ class ModelDecisionMaker:
                 },
                 "protocols": {
                     "Okay": [],
-                    "I'd rather not": [],
+                    "I'd rather not": [self.PROTOCOL_TITLES[13], self.PROTOCOL_TITLES[14]],#change protocols
                 },
             },
 
@@ -315,7 +315,8 @@ class ModelDecisionMaker:
                     "No, thank you": "ending_prompt"
                 },
                 "protocols": {
-                    "Okay": [self.PROTOCOL_TITLES[k] for k in self.positive_protocols],
+                    "Okay": [self.PROTOCOL_TITLES[13], self.PROTOCOL_TITLES[14]],#change here
+                    #[self.PROTOCOL_TITLES[k] for k in self.positive_protocols],
                     "No, thank you": []
                 },
             },
@@ -326,12 +327,12 @@ class ModelDecisionMaker:
                 "model_prompt": lambda user_id, db_session, curr_session, app: self.get_model_prompt_suggestions(user_id),
 
                 "choices": {
-                    self.PROTOCOL_TITLES[k]: "trying_protocol"
-                    for k in self.positive_protocols
+                     self.PROTOCOL_TITLES[k]: "trying_protocol"
+                     for k in self.positive_protocols
                 },
                 "protocols": {
-                    self.PROTOCOL_TITLES[k]: [self.PROTOCOL_TITLES[k]]
-                    for k in self.positive_protocols
+                     self.PROTOCOL_TITLES[k]: [self.PROTOCOL_TITLES[k]]
+                     for k in self.positive_protocols
                 },
             },
 
