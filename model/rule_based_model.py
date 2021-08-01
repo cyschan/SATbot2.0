@@ -19,7 +19,7 @@ class ModelDecisionMaker:
 
         # Titles from workshops (Title 7 adapted to give more information)
         self.PROTOCOL_TITLES = [
-            "0: None",
+            "0: No protocol",
             "1: Connecting with the Child [Week 1]",
             "2: Laughing at our Two Childhood Pictures [Week 1]",
             "3: Falling in Love with the Child [Week 2]",
@@ -46,7 +46,7 @@ class ModelDecisionMaker:
             self.PROTOCOL_TITLES[i]: i for i in range(len(self.PROTOCOL_TITLES))
         }
 
-        self.recent_protocols = deque(maxlen=3)
+        self.recent_protocols = deque(maxlen=20)
         self.reordered_protocol_questions = {}
         self.protocols_to_suggest = []
 
@@ -408,20 +408,24 @@ class ModelDecisionMaker:
         self.users_names[user_id] = user_response
         return "opening_prompt"
 
+
     def get_suggestions(self, user_id, app): #from all the lists of protocols collected at each step of the dialogue it puts together some and returns these as suggestions
         suggestions = []
         for curr_suggestions in list(self.suggestions[user_id]):
             if len(curr_suggestions) > 2:
                 i, j = random.choices(range(0,len(curr_suggestions)), k=2)
-                suggestions.extend([curr_suggestions[i], curr_suggestions[j]])
+                if curr_suggestions[i] and curr_suggestions[j] in self.PROTOCOL_TITLES: #weeds out some gibberish that im not sure why it's there
+                    suggestions.extend([curr_suggestions[i], curr_suggestions[j]])
             else:
                 suggestions.extend(curr_suggestions)
-        k = np.random.choice(range(1,20))
-        while len(suggestions) < 4:
-            if self.PROTOCOL_TITLES[k] not in suggestions:
-                suggestions.append(self.PROTOCOL_TITLES[k])
-            else:
-                k = np.random.choice(range(1,20))
+            suggestions = set(suggestions)
+            suggestions = list(suggestions)
+        while len(suggestions) < 4: #augment the suggestions if less than 4, we add random ones avoiding repetitions
+            p = random.choice([i for i in range(1,20) if i not in [6,11]]) #we dont want to suggest protocols 6 and 11 at random here
+            if (any(self.PROTOCOL_TITLES[p] not in curr_suggestions for curr_suggestions in list(self.suggestions[user_id]))
+                and self.PROTOCOL_TITLES[p] not in self.recent_protocols and self.PROTOCOL_TITLES[p] not in suggestions):
+                        suggestions.append(self.PROTOCOL_TITLES[p])
+                        self.suggestions[user_id].extend([self.PROTOCOL_TITLES[p]])
         return suggestions
 
 
@@ -646,7 +650,7 @@ class ModelDecisionMaker:
         self.add_to_reordered_protocols(user_id, "suggestions")
 
         # Default case: user should review protocols 13 and 14.
-        self.add_to_next_protocols([self.PROTOCOL_TITLES[13], self.PROTOCOL_TITLES[14]])
+        #self.add_to_next_protocols([self.PROTOCOL_TITLES[13], self.PROTOCOL_TITLES[14]])
         return self.get_next_protocol_question(user_id, app)
 
 
@@ -724,17 +728,6 @@ class ModelDecisionMaker:
         if (
             current_choice == "suggestions"
         ):
-        #     if current_choice == "after_classification_happy":
-        #         self.user_emotions[user_id] = "Happy"
-        #
-        #     elif current_choice == "after_classification_sad":
-        #         self.user_emotions[user_id] = "Sad"
-        #
-        #     elif current_choice == "after_classification_angry":
-        #         self.user_emotions[user_id] = "Angry"
-        #
-        #     elif current_choice == "after_classification_scared":
-        #         self.user_emotions[user_id] = "Anxious"
 
             # PRE: user_choice is a string representing a number from 1-20,
             # or the title for the corresponding protocol
