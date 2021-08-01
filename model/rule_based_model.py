@@ -54,6 +54,8 @@ class ModelDecisionMaker:
         self.current_run_ids = {}
         self.current_protocol_ids = {}
 
+        self.current_protocols = {}
+
         self.positive_protocols = [i for i in range(1, 21)]
 
         self.INTERNAL_PERSECUTOR_PROTOCOLS = [
@@ -613,7 +615,7 @@ class ModelDecisionMaker:
     def get_model_prompt_suggestions(self, user_id):
         return np.random.choice(self.data["All emotions - Here are my recommendations, please select the protocol that you would like to attempt"].dropna().tolist())
     def get_model_prompt_trying_protocol(self, user_id):
-        return ["Thank you for choosing Protocol " + self.current_protocol_ids[user_id][0] + ". ", #will remove
+        return ["Thank you for choosing Protocol " + str(self.current_protocol_ids[user_id][0]) + ". ", #will remove
                 np.random.choice(self.data["All emotions - Please try to go through this protocol now. When you finish, press 'continue'"].dropna().tolist())]
     def get_model_prompt_found_useful(self, user_id):
         return np.random.choice(self.data["All emotions - Do you feel better or worse after having taken this protocol?"].dropna().tolist())
@@ -786,7 +788,7 @@ class ModelDecisionMaker:
             )
             db_session.add(protocol_chosen)
             db_session.commit()
-            self.current_protocol_ids[user_id] = [user_choice, protocol_chosen.id]
+            self.current_protocol_ids[user_id] = [current_protocol, protocol_chosen.id]
 
             for i in range(len(self.suggestions[user_id])):
                 curr_protocols = self.suggestions[user_id][i]
@@ -799,7 +801,7 @@ class ModelDecisionMaker:
         # PRE: User choice is string in ["Better", "Worse"]
         elif current_choice == "user_found_useful":
             current_protocol = Protocol.query.filter_by(
-                id=self.current_protocol_ids[user_id]
+                id=self.current_protocol_ids[user_id][1]
             ).first()
             current_protocol.protocol_was_useful = user_choice
             db_session.commit()
