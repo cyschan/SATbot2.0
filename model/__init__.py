@@ -111,7 +111,7 @@ def create_app():
             return {"validID": False, "userID": None}
 
         if password == user.password:
-            opening_decision = decision_maker.QUESTIONS["opening_prompt"]
+            opening_decision = decision_maker.QUESTIONS["ask_name"]
             model_prompt = opening_decision["model_prompt"]
 
             choices = opening_decision["choices"]
@@ -122,6 +122,8 @@ def create_app():
             db.session.add(new_session)
             db.session.commit()
 
+            decision_maker.clear_names(user.id)
+            decision_maker.initialise_remaining_choices(user.id)
             decision_maker.clear_suggestions(user.id)
             decision_maker.clear_choices(user.id)
             decision_maker.user_choices[user.id]["current_session_id"] = new_session.id
