@@ -359,14 +359,16 @@ class ModelDecisionMaker:
                 "model_prompt": lambda user_id, db_session, curr_session, app: self.get_model_prompt_new_better(user_id),
 
                 "choices": {
-                    "yes": lambda user_id, db_session, curr_session, app: self.determine_next_prompt_new_protocol(
+                    "Yes": lambda user_id, db_session, curr_session, app: self.determine_next_prompt_new_protocol(
                         user_id, app
                     ),
-                    "no": "ending_prompt",
+                    "No (restart questions)": "restart_prompt",
+                    "No (end session)": "ending_prompt",
                 },
                 "protocols": {
-                    "yes": [],
-                    "no": [],
+                    "Yes": [],
+                    "No (restart questions)": [],
+                    "No (end session)": []
                 },
             },
 
@@ -374,14 +376,16 @@ class ModelDecisionMaker:
                 "model_prompt": lambda user_id, db_session, curr_session, app: self.get_model_prompt_new_worse(user_id),
 
                 "choices": {
-                    "yes": lambda user_id, db_session, curr_session, app: self.determine_next_prompt_new_protocol(
+                    "Yes": lambda user_id, db_session, curr_session, app: self.determine_next_prompt_new_protocol(
                         user_id, app
                     ),
-                    "no": "ending_prompt",
+                    "No (restart questions)": "restart_prompt",
+                    "No (end session)": "ending_prompt",
                 },
                 "protocols": {
-                    "yes": [],
-                    "no": [],
+                    "Yes": [],
+                    "No (restart questions)": [],
+                    "No (end session)": []
                 },
             },
 
@@ -391,6 +395,15 @@ class ModelDecisionMaker:
                 "choices": {"any": "opening_prompt"},
                 "protocols": {"any": []}
                 },
+
+            "restart_prompt": {
+                "model_prompt": lambda user_id, db_session, curr_session, app: self.get_restart_prompt(user_id),
+
+                "choices": {
+                    "open_text": lambda user_id, db_session, curr_session, app: self.determine_next_prompt_opening(user_id, app, db_session)
+                },
+                "protocols": {"open_text": []},
+            },
         }
         self.QUESTION_KEYS = list(self.QUESTIONS.keys())
 
@@ -468,6 +481,14 @@ class ModelDecisionMaker:
         else:
             opening_prompt = ["Hello " + self.users_names[user_id] + ". ", "How are you feeling today?"]
         return opening_prompt
+
+    def get_restart_prompt(self, user_id):
+        if self.users_names[user_id] == "":
+            opening_prompt = ["Please tell me again, how are you feeling today?"]
+        else:
+            opening_prompt = ["Please tell me again, " + self.users_names[user_id] + ", how are you feeling today?"]
+        return opening_prompt
+
 
     def get_next_question(self, user_id):
         if self.remaining_choices[user_id] == []:
@@ -810,6 +831,8 @@ class ModelDecisionMaker:
                 and current_choice != "after_classification_positive"
                 and current_choice != "user_found_useful"
                 and current_choice != "check_emotion"
+                and current_choice != "new_protocol_better"
+                and current_choice != "new_protocol_worse"
             ):
                 user_choice = user_choice.lower()
 
