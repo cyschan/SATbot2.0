@@ -327,7 +327,7 @@ class ModelDecisionMaker:
                 "model_prompt": lambda user_id, db_session, curr_session, app: self.get_model_prompt_suggestions(user_id),
 
                 "choices": {
-                     self.PROTOCOL_TITLES[k]: "trying_protocol"
+                     self.PROTOCOL_TITLES[k]: "trying_protocol" #self.current_protocol_ids[user_id]
                      for k in self.positive_protocols
                 },
                 "protocols": {
@@ -595,7 +595,8 @@ class ModelDecisionMaker:
     def get_model_prompt_suggestions(self, user_id):
         return np.random.choice(self.data["All emotions - Here are my recommendations, please select the protocol that you would like to attempt"].dropna().tolist())
     def get_model_prompt_trying_protocol(self, user_id):
-        return np.random.choice(self.data["All emotions - Please try to go through this protocol now. When you finish, press 'continue'"].dropna().tolist())
+        return ["Thank you for choosing Protocol " + self.current_protocol_ids[user_id][0] + ". ",
+                np.random.choice(self.data["All emotions - Please try to go through this protocol now. When you finish, press 'continue'"].dropna().tolist())]
     def get_model_prompt_found_useful(self, user_id):
         return np.random.choice(self.data["All emotions - Do you feel better or worse after having taken this protocol?"].dropna().tolist())
     def get_model_prompt_new_better(self, user_id):
@@ -767,7 +768,7 @@ class ModelDecisionMaker:
             )
             db_session.add(protocol_chosen)
             db_session.commit()
-            self.current_protocol_ids[user_id] = protocol_chosen.id
+            self.current_protocol_ids[user_id] = [user_choice, protocol_chosen.id]
 
             for i in range(len(self.suggestions[user_id])):
                 curr_protocols = self.suggestions[user_id][i]
