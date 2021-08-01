@@ -100,6 +100,24 @@ class ModelDecisionMaker:
            },
 
 
+           "choose_persona": {
+              "model_prompt": "Please select who you would like to talk to.",
+              "choices": {
+                  "Richard": "opening_prompt", #lambda user_id, db_session, curr_session, app: self.get_data_richard(user_id, app, db_session),
+                  "Maeve": "opening_prompt", #lambda user_id, db_session, curr_session, app: self.get_data_maeve(user_id, app, db_session),
+                  "Ali": "opening_prompt", #lambda user_id, db_session, curr_session, app: self.get_data_ali(user_id, app, db_session),
+                  "Eliza": "opening_prompt", #lambda user_id, db_session, curr_session, app: self.get_data_eliza(user_id, app, db_session),
+                  #"Just SATbot":
+              },
+              "protocols": {
+                  "Richard": [],
+                  "Maeve": [],
+                  "Ali": [],
+                  "Eliza": [],
+              },
+          },
+
+
             "opening_prompt": {
                 "model_prompt": lambda user_id, db_session, curr_session, app: self.get_opening_prompt(user_id),
 
@@ -420,7 +438,7 @@ class ModelDecisionMaker:
         except:  # noqa
             user_response = ""
         self.users_names[user_id] = user_response
-        return "opening_prompt"
+        return "choose_persona"
 
 
     def get_suggestions(self, user_id, app): #from all the lists of protocols collected at each step of the dialogue it puts together some and returns these as suggestions
@@ -595,7 +613,7 @@ class ModelDecisionMaker:
     def get_model_prompt_suggestions(self, user_id):
         return np.random.choice(self.data["All emotions - Here are my recommendations, please select the protocol that you would like to attempt"].dropna().tolist())
     def get_model_prompt_trying_protocol(self, user_id):
-        return ["Thank you for choosing Protocol " + self.current_protocol_ids[user_id][0] + ". ",
+        return ["Thank you for choosing Protocol " + self.current_protocol_ids[user_id][0] + ". ", #will remove
                 np.random.choice(self.data["All emotions - Please try to go through this protocol now. When you finish, press 'continue'"].dropna().tolist())]
     def get_model_prompt_found_useful(self, user_id):
         return np.random.choice(self.data["All emotions - Do you feel better or worse after having taken this protocol?"].dropna().tolist())
@@ -835,6 +853,7 @@ class ModelDecisionMaker:
                 and current_choice != "check_emotion"
                 and current_choice != "new_protocol_better"
                 and current_choice != "new_protocol_worse"
+                and current_choice != "choose_persona"
             ):
                 user_choice = user_choice.lower()
 
