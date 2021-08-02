@@ -29,7 +29,7 @@ const config = {
     askingForProtocol: false
   },
   customComponents: {
-    // header: () => <div style={{ fontFamily: 'Arial', color: '#646E6E', backgroundColor: '#f1f1f1', padding: "8px", borderRadius: "3px"}}>SATbot</div>
+    header: () => <div style={{height: '16px', fontFamily: 'Arial', color: '#646E6E', padding: '8px', borderBottom: '1px solid #646E6E'}}>SATbot</div>
   },
 
   widgets: [
