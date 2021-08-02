@@ -94,7 +94,7 @@ class ModelDecisionMaker:
         self.QUESTIONS = {
 
             "ask_name": {
-               "model_prompt": "If you wish, you can enter your first name (or leave blank and enter):",
+               "model_prompt": "Please enter your first name:",
                "choices": {
                    "open_text": lambda user_id, db_session, curr_session, app: self.save_name(user_id, app, db_session)
                },
@@ -229,7 +229,7 @@ class ModelDecisionMaker:
                 },
                 "protocols": {
                     "Okay": [],
-                    "I'd rather not": [self.PROTOCOL_TITLES[13], self.PROTOCOL_TITLES[14]],#change protocols
+                    "I'd rather not": [self.PROTOCOL_TITLES[13]],
                 },
             },
 
@@ -242,7 +242,7 @@ class ModelDecisionMaker:
                 },
                 "protocols": {
                     "yes": [self.PROTOCOL_TITLES[13], self.PROTOCOL_TITLES[14]],
-                    "no": [self.PROTOCOL_TITLES[13], self.PROTOCOL_TITLES[14]],#change here
+                    "no": [self.PROTOCOL_TITLES[13]],
                 },
             },
 
@@ -294,7 +294,7 @@ class ModelDecisionMaker:
                 },
                 "protocols": {
                 "yes": self.INTERNAL_PERSECUTOR_PROTOCOLS,
-                "no": [self.PROTOCOL_TITLES[13], self.PROTOCOL_TITLES[14]],#change here
+                "no": [self.PROTOCOL_TITLES[13]],
                 },
             },
 
@@ -306,7 +306,7 @@ class ModelDecisionMaker:
                     "no": "suggestions",
                 },
                 "protocols": {
-                    "yes": [self.PROTOCOL_TITLES[13], self.PROTOCOL_TITLES[14]],#change here,
+                    "yes": [self.PROTOCOL_TITLES[13]],
                     "no": [self.PROTOCOL_TITLES[13], self.PROTOCOL_TITLES[19]],
                 },
             },
@@ -321,7 +321,7 @@ class ModelDecisionMaker:
                 },
                 "protocols": {
                     "yes": [self.PROTOCOL_TITLES[13], self.PROTOCOL_TITLES[17]],
-                    "no": [self.PROTOCOL_TITLES[13], self.PROTOCOL_TITLES[14]],#change here,
+                    "no": [self.PROTOCOL_TITLES[13]],
                 },
             },
 
@@ -335,7 +335,7 @@ class ModelDecisionMaker:
                     "No, thank you": "ending_prompt"
                 },
                 "protocols": {
-                    "Okay": [self.PROTOCOL_TITLES[13], self.PROTOCOL_TITLES[14]],#change here
+                    "Okay": [self.PROTOCOL_TITLES[9], self.PROTOCOL_TITLES[10], self.PROTOCOL_TITLES[11]], #change here?
                     #[self.PROTOCOL_TITLES[k] for k in self.positive_protocols],
                     "No, thank you": []
                 },
