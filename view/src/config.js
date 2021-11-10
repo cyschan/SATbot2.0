@@ -9,6 +9,7 @@ import FeedbackOptions from "./widgets/options/GeneralOptions/FeedbackOptions";
 import EmotionOptions from "./widgets/options/GeneralOptions/EmotionOptions";
 import EventOptions from "./widgets/options/GeneralOptions/EventOptions";
 import YesNoProtocolOptions from "./widgets/options/GeneralOptions/YesNoProtocolsOptions";
+import Robert from "./Robert.png"
 const botName = "SATbot";
 
 const config = {
@@ -29,7 +30,12 @@ const config = {
     askingForProtocol: false
   },
   customComponents: {
-    header: () => <div style={{height: '16px', fontFamily: 'Arial', color: '#646E6E', padding: '8px', borderBottom: '1px solid #646E6E'}}>SATbot</div>
+    header: () => <div style={{height: '16px', fontFamily: 'Arial', borderTopLeftRadius: '5px', borderTopRightRadius: '5px',
+    background: '#EBECED', color: '#4A4A4A', padding: '8px', borderBottom: '1px solid #B8BABA'}}>SATbot</div>,
+    botAvatar: () => <div class="react-chatbot-kit-chat-bot-avatar-container" style={{fontFamily: 'Arial', fontSize: '10px'}}><img src={Robert}/></div>,
+    robertAvatar: () => <div class="react-chatbot-kit-chat-bot-avatar-container" style={{fontFamily: 'Arial'}}>
+                           <img src={Robert}/>
+                        </div>
   },
 
   widgets: [
