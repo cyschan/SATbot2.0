@@ -17,13 +17,26 @@ from transformers import (
     GPT2LMHeadModel
 )
 
+from transformers import (
+    T5ForConditionalGeneration,
+    T5Tokenizer,
+    GPT2Tokenizer,
+    GPT2LMHeadModel,
+    AutoModelWithLMHead,
+    AutoTokenizer
+)
+from tokenizers import ByteLevelBPETokenizer
+
+from tokenizers.processors import BertProcessing
+
 #T5:
 class T5FineTuner(pl.LightningModule):
-  def __init__(self):
+  def __init__(self, hparams):
     super(T5FineTuner, self).__init__()
+    self.hparams = hparams
 
-    self.model = T5ForConditionalGeneration.from_pretrained('t5-small')
-    self.tokenizer = T5Tokenizer.from_pretrained('t5-small')
+    self.model = T5ForConditionalGeneration.from_pretrained(hparams.model_name_or_path)
+    self.tokenizer = T5Tokenizer.from_pretrained(hparams.tokenizer_name_or_path)
 
   def forward(
       self, input_ids, attention_mask=None, decoder_input_ids=None, decoder_attention_mask=None, lm_labels=None
@@ -36,13 +49,23 @@ class T5FineTuner(pl.LightningModule):
         lm_labels=lm_labels,
     )
 
+args_dict = dict(
+    model_name_or_path='t5-small',
+    tokenizer_name_or_path='t5-small',
+)
+
+args = argparse.Namespace(**args_dict)
+
+
 #load emotion classifier (T5 small)
 with torch.no_grad():
-   emomodel = T5FineTuner().load_state_dict(torch.load('T5_small_emotion.pt', map_location=torch.device('cpu')))
+    emo_model = T5FineTuner(args)
+    emo_model.load_state_dict(torch.load('T5_small_emotion.pt', map_location=torch.device('cpu')))
 
 #load empathy classifier (T5 small)
 with torch.no_grad():
-    t5model = T5FineTuner().load_state_dict(torch.load('T5_small_empathy.pt', map_location=torch.device('cpu'))) #change path
+    emp_model = T5FineTuner(args)
+    emp_model.load_state_dict(torch.load('T5_small_empathy.pt', map_location=torch.device('cpu'))) #change path
 
 #Load pre-trained GPT2 language model weights
 with torch.no_grad():
@@ -64,9 +87,9 @@ def get_emotion(text):
   text = re.sub(r'[^\w\s]', '', text)
   text = text.lower()
   with torch.no_grad():
-      input_ids = emomodel.tokenizer.encode(text + '</s>', return_tensors='pt')
-      output = emomodel.model.generate(input_ids=input_ids, max_length=2)
-      dec = [emomodel.tokenizer.decode(ids) for ids in output]
+      input_ids = emo_model.tokenizer.encode(text + '</s>', return_tensors='pt')
+      output = emo_model.model.generate(input_ids=input_ids, max_length=2)
+      dec = [emo_model.tokenizer.decode(ids) for ids in output]
   label = dec[0]
   return label
 
@@ -76,9 +99,9 @@ def empathy_score(text):
   Computes a discrete numerical empathy score for an utterance (scale 0 to 2)
   '''
   with torch.no_grad():
-      input_ids = t5model.tokenizer.encode(text + '</s>', return_tensors='pt')
-      output = t5model.model.generate(input_ids=input_ids, max_length=2)
-      dec = [t5model.tokenizer.decode(ids) for ids in output]
+      input_ids = emp_model.tokenizer.encode(text + '</s>', return_tensors='pt')
+      output = emp_model.model.generate(input_ids=input_ids, max_length=2)
+      dec = [emp_model.tokenizer.decode(ids) for ids in output]
   label = dec[0]
   if label == 'no':
     score = 0.0
