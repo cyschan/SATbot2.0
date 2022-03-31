@@ -439,7 +439,11 @@ class ModelDecisionMaker:
             },
 
             "new_protocol_same": {
-                "model_prompt": "I am sorry to hear you have not detected any change in your mood. That can sometimes happen but if you agree we could try another protocol and see if that is more helpful to you. Would you like me to suggest a different protocol?",
+                "model_prompt": [
+                                "I am sorry to hear you have not detected any change in your mood.",
+                                "That can sometimes happen but if you agree we could try another protocol and see if that is more helpful to you.",
+                                "Would you like me to suggest a different protocol?"
+                                ],
 
                 "choices": {
                     "Yes (show follow-up suggestions)": lambda user_id, db_session, curr_session, app: self.determine_next_prompt_new_protocol(
@@ -1192,6 +1196,7 @@ class ModelDecisionMaker:
                 and current_choice != "check_emotion"
                 and current_choice != "new_protocol_better"
                 and current_choice != "new_protocol_worse"
+                and current_choice != "new_protocol_same"
                 and current_choice != "choose_persona"
                 and current_choice != "project_emotion"
                 and current_choice != "after_classification_negative"
