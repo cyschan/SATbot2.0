@@ -624,7 +624,7 @@ class ModelDecisionMaker:
         #return random.choice(column.dropna().sample(n=15).to_list()) #using random choice instead of machine learning
         maxscore = 0
         chosen = ''
-        for row in column.dropna().sample(n=15): #was 25
+        for row in column.dropna().sample(n=5): #was 25
              fitscore = get_sentence_score(row, prev_qs)
              if fitscore > maxscore:
                  maxscore = fitscore
@@ -632,7 +632,7 @@ class ModelDecisionMaker:
         if chosen != '':
             return chosen
         else:
-            return random.choice(column.dropna().sample(n=15).to_list()) #was 25
+            return random.choice(column.dropna().sample(n=5).to_list()) #was 25
 
 
     def split_sentence(self, sentence):
