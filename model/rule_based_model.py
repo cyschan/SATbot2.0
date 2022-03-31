@@ -17,11 +17,11 @@ from nltk.corpus import wordnet  # noqa
 class ModelDecisionMaker:
     def __init__(self):
 
-        self.kai = pd.read_csv('/Users/lisaxy/SATbot/model/kai.csv', encoding='ISO-8859-1') #change path
-        self.robert = pd.read_csv('/Users/lisaxy/SATbot/model/robert.csv', encoding='ISO-8859-1')
-        self.gabrielle = pd.read_csv('/Users/lisaxy/SATbot/model/gabrielle.csv', encoding='ISO-8859-1')
-        self.arman = pd.read_csv('/Users/lisaxy/SATbot/model/arman.csv', encoding='ISO-8859-1')
-        self.olivia = pd.read_csv('/Users/lisaxy/SATbot/model/olivia.csv', encoding='ISO-8859-1')
+        self.kai = pd.read_csv('/Users/lisaxy/SATbot2.0/model/kai.csv', encoding='ISO-8859-1') #change path
+        self.robert = pd.read_csv('/Users/lisaxy/SATbot2.0/model/robert.csv', encoding='ISO-8859-1')
+        self.gabrielle = pd.read_csv('/Users/lisaxy/SATbot2.0/model/gabrielle.csv', encoding='ISO-8859-1')
+        self.arman = pd.read_csv('/Users/lisaxy/SATbot2.0/model/arman.csv', encoding='ISO-8859-1')
+        self.olivia = pd.read_csv('/Users/lisaxy/SATbot2.0/model/olivia.csv', encoding='ISO-8859-1')
 
         # Titles from workshops (Title 7 adapted to give more information)
         self.PROTOCOL_TITLES = [
@@ -395,12 +395,10 @@ class ModelDecisionMaker:
                 "choices": {
                     "I feel better": "new_protocol_better",
                     "I feel worse": "new_protocol_worse",
-                    "I don't feel any change": "new_protocol_same",
                 },
                 "protocols": {
                     "I feel better": [],
-                    "I feel worse": [],
-                    "I don't feel any change": [],
+                    "I feel worse": []
                 },
             },
 
@@ -420,24 +418,6 @@ class ModelDecisionMaker:
                     "No (end session)": []
                 },
             },
-
-            "new_protocol_same": {
-                 "model_prompt": "Oh, I see. Perhaps you would find a different protocol more beneficial. Would you like to try one more?",
-
-                 "choices": {
-                     "Yes (show follow-up suggestions)": lambda user_id, db_session, curr_session, app: self.determine_next_prompt_new_protocol(
-                         user_id, app
-                     ),
-                     "Yes (restart questions)": "restart_prompt",
-                     "No (end session)": "ending_prompt",
-                 },
-                 "protocols": {
-                     "Yes (show follow-up suggestions)": [],
-                     "Yes (restart questions)": [],
-                     "No (end session)": []
-                 },
-             },
-
 
             "new_protocol_worse": {
                 "model_prompt": lambda user_id, db_session, curr_session, app: self.get_model_prompt_new_worse(user_id, app, db_session),
@@ -622,6 +602,7 @@ class ModelDecisionMaker:
     def determine_next_prompt_opening(self, user_id, app, db_session):
         user_response = self.user_choices[user_id]["choices_made"]["opening_prompt"]
         emotion = get_emotion(user_response)
+        #emotion = np.random.choice(["Happy", "Sad", "Angry", "Anxious"]) #random choice to be replaced with emotion classifier
         if emotion == 'fear':
             self.guess_emotion_predictions[user_id] = 'Anxious/Scared'
             self.user_emotions[user_id] = 'Anxious'
@@ -634,16 +615,16 @@ class ModelDecisionMaker:
         else:
             self.guess_emotion_predictions[user_id] = 'Happy/Content'
             self.user_emotions[user_id] = 'Happy'
-        #emotion = np.random.choice(["Happy", "Sad", "Angry", "Anxious"]) #random choice to be replaced with emotion classifier
         #self.guess_emotion_predictions[user_id] = emotion
         #self.user_emotions[user_id] = emotion
         return "guess_emotion"
 
 
     def get_best_sentence(self, column, prev_qs):
+        #return random.choice(column.dropna().sample(n=15).to_list()) #using random choice instead of machine learning
         maxscore = 0
         chosen = ''
-        for row in column.dropna().sample(n=5): #was 25
+        for row in column.dropna().sample(n=15): #was 25
              fitscore = get_sentence_score(row, prev_qs)
              if fitscore > maxscore:
                  maxscore = fitscore
@@ -651,7 +632,8 @@ class ModelDecisionMaker:
         if chosen != '':
             return chosen
         else:
-            return random.choice(column.dropna().sample(n=5).to_list()) #was 25
+            return random.choice(column.dropna().sample(n=15).to_list()) #was 25
+
 
     def split_sentence(self, sentence):
         temp_list = re.split('(?<=[.?!]) +', sentence)
