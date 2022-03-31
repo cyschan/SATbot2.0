@@ -395,10 +395,12 @@ class ModelDecisionMaker:
                 "choices": {
                     "I feel better": "new_protocol_better",
                     "I feel worse": "new_protocol_worse",
+                    "I feel no change": "new_protocol_same",
                 },
                 "protocols": {
                     "I feel better": [],
-                    "I feel worse": []
+                    "I feel worse": [],
+                    "I feel no change": []
                 },
             },
 
@@ -421,6 +423,23 @@ class ModelDecisionMaker:
 
             "new_protocol_worse": {
                 "model_prompt": lambda user_id, db_session, curr_session, app: self.get_model_prompt_new_worse(user_id, app, db_session),
+
+                "choices": {
+                    "Yes (show follow-up suggestions)": lambda user_id, db_session, curr_session, app: self.determine_next_prompt_new_protocol(
+                        user_id, app
+                    ),
+                    "Yes (restart questions)": "restart_prompt",
+                    "No (end session)": "ending_prompt",
+                },
+                "protocols": {
+                    "Yes (show follow-up suggestions)": [],
+                    "Yes (restart questions)": [],
+                    "No (end session)": []
+                },
+            },
+
+            "new_protocol_same": {
+                "model_prompt": "I am sorry to hear you have not detected any change in your mood. That can sometimes happen but if you agree we could try another protocol and see if that is more helpful to you. Would you like me to suggest a different protocol?",
 
                 "choices": {
                     "Yes (show follow-up suggestions)": lambda user_id, db_session, curr_session, app: self.determine_next_prompt_new_protocol(
