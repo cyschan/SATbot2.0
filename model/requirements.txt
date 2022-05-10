@@ -28,3 +28,4 @@ argparse
 pandas
 torch
 typing
+sentencepiece
