@@ -1,8 +1,50 @@
 // MessageParser starter code
+
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+/*class MessageParser {
+  constructor(actionProvider, state) {
+    this.actionProvider = actionProvider;
+    this.state = state;
+
+    this.recognition = new SpeechRecognition()
+    this.recognition.continous = false
+    this.recognition.interimResults = false
+    this.recognition.lang = 'en-US'
+    this.recognition.maxAlternatives = 1;
+
+    this.recognition.start()
+    this.recognition.onresult = (e) => {
+      const transcript = e.results[0][0].transcript;
+      this.recognition.abort()
+      this.parse(transcript)
+    }
+  }
+
+  parse(message) {
+    console.log(message)
+    setTimeout(() => {
+      this.recognition.start()
+    }, 500)
+    return this.actionProvider.askForPassword(message);
+  }
+}
+
+export default MessageParser*/
 class MessageParser {
   constructor(actionProvider, state) {
     this.actionProvider = actionProvider;
     this.state = state;
+    this.recognition = new SpeechRecognition()
+    this.recognition.continuous = false
+    this.recognition.interimResults = false
+    this.recognition.lang = 'en-US'
+    this.recognition.maxAlternatives = 1;
+    this.recognition.start()
+    this.recognition.onresult = (e) => {
+      const transcript = e.results[0][0].transcript;
+      this.recognition.abort()
+      this.parse(transcript)
+    }
   }
 
   // This method is called inside the chatbot when it receives a message from the user.
@@ -13,7 +55,10 @@ class MessageParser {
     } else if (this.state.password == null) {
       return this.actionProvider.updateUserID(this.state.username, message);
     } else if (this.state.askingForProtocol && parseInt(message) >= 1 && parseInt(message) <= 20) {
-
+      console.log(message)
+      setTimeout(() => {
+        this.recognition.start()
+      }, 500)
       const choice_info = {
         user_id: this.state.userState,
         session_id: this.state.sessionID,
@@ -24,9 +69,19 @@ class MessageParser {
 
       return this.actionProvider.sendRequest(choice_info);
     } else if (this.state.askingForProtocol && (parseInt(message) < 1 || parseInt(message) > 20)) {
+      console.log(message)
+      setTimeout(() => {
+        this.recognition.start()
+      }, 500)
+      
       return this.actionProvider.askForProtocol()
     }
     else {
+      message = this.capitaliseFirstLetter(message)
+      console.log(message)
+      setTimeout(() => {
+        this.recognition.start()
+      }, 500)
       let input_type = null;
       if (this.state.inputType.length === 1) {
         input_type = this.state.inputType[0]
@@ -50,11 +105,16 @@ class MessageParser {
           user_choice: message,
           input_type: input_type,
         };
+        
         return this.actionProvider.sendRequest(choice_info);
       }
     }
-
   }
+
+  capitaliseFirstLetter(string) {
+    return string.charAt(0).toUpperCase() + string.slice(1);
+  }
+  
 }
 
 export default MessageParser;
