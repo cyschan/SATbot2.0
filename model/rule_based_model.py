@@ -150,8 +150,8 @@ class ModelDecisionMaker:
                     "yes": {
                         "Sad": "after_classification_negative",
                         "Angry": "after_classification_negative",
-                        "Anxious/Scared": "after_classification_negative",
-                        "Happy/Content": "after_classification_positive",
+                        "Anxious or scared": "after_classification_negative",
+                        "Happy or content": "after_classification_positive",
                     },
                     "no": "check_emotion",
                 },
@@ -168,14 +168,14 @@ class ModelDecisionMaker:
                 "choices": {
                     "Sad": lambda user_id, db_session, curr_session, app: self.get_sad_emotion(user_id),
                     "Angry": lambda user_id, db_session, curr_session, app: self.get_angry_emotion(user_id),
-                    "Anxious/Scared": lambda user_id, db_session, curr_session, app: self.get_anxious_emotion(user_id),
-                    "Happy/Content": lambda user_id, db_session, curr_session, app: self.get_happy_emotion(user_id),
+                    "Anxious or scared": lambda user_id, db_session, curr_session, app: self.get_anxious_emotion(user_id),
+                    "Happy or content": lambda user_id, db_session, curr_session, app: self.get_happy_emotion(user_id),
                 },
                 "protocols": {
                     "Sad": [],
                     "Angry": [],
-                    "Anxious/Scared" : [],
-                    "Happy/Content": []
+                    "Anxious or scared" : [],
+                    "Happy or content": []
                 },
             },
 
@@ -186,12 +186,12 @@ class ModelDecisionMaker:
                 "model_prompt": lambda user_id, db_session, curr_session, app: self.get_model_prompt_specific_event(user_id, app, db_session),
 
                 "choices": {
-                    "Yes, something happened": "event_is_recent",
-                    "No, it's just a general feeling": "more_questions",
+                    "Yes something happened": "event_is_recent",
+                    "No it's just a general feeling": "more_questions",
                 },
                 "protocols": {
-                    "Yes, something happened": [],
-                    "No, it's just a general feeling": []
+                    "Yes something happened": [],
+                    "No it's just a general feeling": []
                 },
             },
 
@@ -238,11 +238,11 @@ class ModelDecisionMaker:
                 "model_prompt": lambda user_id, db_session, curr_session, app: self.get_model_prompt_more_questions(user_id, app, db_session),
 
                 "choices": {
-                    "Okay": lambda user_id, db_session, curr_session, app: self.get_next_question(user_id),
+                    "Ok": lambda user_id, db_session, curr_session, app: self.get_next_question(user_id),
                     "I'd rather not": "project_emotion",
                 },
                 "protocols": {
-                    "Okay": [],
+                    "Ok": [],
                     "I'd rather not": [self.PROTOCOL_TITLES[13]],
                 },
             },
@@ -345,13 +345,13 @@ class ModelDecisionMaker:
                 "model_prompt": lambda user_id, db_session, curr_session, app: self.get_model_prompt_happy(user_id, app, db_session),
 
                 "choices": {
-                    "Okay": "suggestions",
-                    "No, thank you": "ending_prompt"
+                    "Ok": "suggestions",
+                    "No thank you": "ending_prompt"
                 },
                 "protocols": {
-                    "Okay": [self.PROTOCOL_TITLES[9], self.PROTOCOL_TITLES[10], self.PROTOCOL_TITLES[11]], #change here?
+                    "Ok": [self.PROTOCOL_TITLES[9], self.PROTOCOL_TITLES[10], self.PROTOCOL_TITLES[11]], #change here?
                     #[self.PROTOCOL_TITLES[k] for k in self.positive_protocols],
-                    "No, thank you": []
+                    "No thank you": []
                 },
             },
 
@@ -408,16 +408,24 @@ class ModelDecisionMaker:
                 "model_prompt": lambda user_id, db_session, curr_session, app: self.get_model_prompt_new_better(user_id, app, db_session),
 
                 "choices": {
-                    "Yes (show follow-up suggestions)": lambda user_id, db_session, curr_session, app: self.determine_next_prompt_new_protocol(
+                    #"Yes (show follow-up suggestions)": lambda user_id, db_session, curr_session, app: self.determine_next_prompt_new_protocol(
+                    #    user_id, app
+                    #),
+                    #"Yes (restart questions)": "restart_prompt",
+                    #"No (end session)": "ending_prompt",
+                    "Show follow up suggestions": lambda user_id, db_session, curr_session, app: self.determine_next_prompt_new_protocol(
                         user_id, app
                     ),
-                    "Yes (restart questions)": "restart_prompt",
-                    "No (end session)": "ending_prompt",
+                    "Restart": "restart_prompt",
+                    "End session": "ending_prompt"
                 },
                 "protocols": {
-                    "Yes (show follow-up suggestions)": [],
-                    "Yes (restart questions)": [],
-                    "No (end session)": []
+                    #"Yes (show follow-up suggestions)": [],
+                    #"Yes (restart questions)": [],
+                    #"No (end session)": []
+                    "Show follow up suggestions": [],
+                    "Restart":[],
+                    "End session": []
                 },
             },
 
@@ -425,16 +433,16 @@ class ModelDecisionMaker:
                 "model_prompt": lambda user_id, db_session, curr_session, app: self.get_model_prompt_new_worse(user_id, app, db_session),
 
                 "choices": {
-                    "Yes (show follow-up suggestions)": lambda user_id, db_session, curr_session, app: self.determine_next_prompt_new_protocol(
+                    "Show follow up suggestions": lambda user_id, db_session, curr_session, app: self.determine_next_prompt_new_protocol(
                         user_id, app
                     ),
-                    "Yes (restart questions)": "restart_prompt",
-                    "No (end session)": "ending_prompt",
+                    "Restart": "restart_prompt",
+                    "End session": "ending_prompt",
                 },
                 "protocols": {
-                    "Yes (show follow-up suggestions)": [],
-                    "Yes (restart questions)": [],
-                    "No (end session)": []
+                    "Show follow up suggestions": [],
+                    "Restart": [],
+                    "End session": []
                 },
             },
 
@@ -446,16 +454,16 @@ class ModelDecisionMaker:
                                 ],
 
                 "choices": {
-                    "Yes (show follow-up suggestions)": lambda user_id, db_session, curr_session, app: self.determine_next_prompt_new_protocol(
+                    "Show follow up suggestions": lambda user_id, db_session, curr_session, app: self.determine_next_prompt_new_protocol(
                         user_id, app
                     ),
-                    "Yes (restart questions)": "restart_prompt",
-                    "No (end session)": "ending_prompt",
+                    "Restart": "restart_prompt",
+                    "End session": "ending_prompt",
                 },
                 "protocols": {
-                    "Yes (show follow-up suggestions)": [],
-                    "Yes (restart questions)": [],
-                    "No (end session)": []
+                    "Show follow up suggestions": [],
+                    "Restart": [],
+                    "End session": []
                 },
             },
 

@@ -1,1 +1,0 @@
-npm install --save @cleandersonlobo/react-mic --legacy-peer-deps
