@@ -5,12 +5,12 @@ class ActionProvider {
     this.createChatBotMessage = createChatBotMessage;
     this.setState = setStateFunc;
     this.createClientMessage = createClientMessage;
-    this.speechEnabled = false;
+    /*this.speechEnabled = false;
     this.recognition = new SpeechRecognition()
     this.recognition.continuous = false
     this.recognition.interimResults = false
     this.recognition.lang = 'en-US'
-    this.recognition.maxAlternatives = 1;
+    this.recognition.maxAlternatives = 1;*/
   }
 
 
