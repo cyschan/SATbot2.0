@@ -43,7 +43,7 @@ class MessageParser {
     this.recognition.start()
     this.recognition.onstart = function(){
       if (navigator.mediaDevices.getUserMedia) {
-        console.log('getUserMedia supported.');
+        //console.log('getUserMedia supported.');
         let chunks = [];
         var options = {
           audioBitsPerSecond: 128000,

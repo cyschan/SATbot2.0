@@ -9,8 +9,13 @@ import logging
 import datetime
 from dotenv import load_dotenv
 
+from werkzeug import secure_filename
+import numpy as np
+import wavio
+
 basedir = os.path.abspath(os.path.dirname(__file__))
 load_dotenv(os.path.join(basedir, ".env"))
+UPLOAD_FOLDER = './uploads'
 
 
 # For dev logging - comment out for Gunicorn
@@ -27,6 +32,8 @@ migrate = Migrate()  # <-Initialize migration object
 def create_app():
     """Construct core application"""
     app = Flask(__name__)
+
+    app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
     # For Gunicorn logging
     # gunicorn_logger = logging.getLogger('gunicorn.error')
@@ -171,6 +178,28 @@ def create_app():
             "chatbot_response": output["model_prompt"],
             "user_options": output["choices"],
         }
+
+    return app
+
+    @app.route("/api/speech_emotion", methods=["POST"])
+    # https://stackoverflow.com/questions/70754829/upload-files-and-a-string-in-same-flask-request
+    def upload():
+        if request.method == 'POST' and 'file' in request.files:
+            # model = tool.get_model(emotions_to_predict, model_path='multilabel7.pth', model_type='multilabel')
+            # model, audio, token_ids, attention_mask = tool.load_data(model, audiofile=data_file, model_type='multilabel')
+            f = request.files['file']
+            f_name = secure_filename(f.filename)
+            f.save(os.path.join(app.config['UPLOAD_FOLDER'], f_name))
+            text = request.form['transcript']
+            audio = model.load_audio(f).unsqueeze(dim=0)
+            tokens = model.tokenizer.tokenize(text)
+            tokens = ['[CLS]'] + tokens + ['[SEP]']
+            token_ids = torch.tensor(model.tokenizer.convert_tokens_to_ids(tokens)).unsqueeze(dim=0)
+            #prediction = tool.predict(model, audio, token_ids, attention_mask)
+            #pred_emotion = tool.process_pred(prediction, emotions_to_predict, thresholds=thresholds, model_type='multilabel')
+            
+            
+
 
     return app
 
