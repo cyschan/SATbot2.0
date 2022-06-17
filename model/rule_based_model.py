@@ -17,11 +17,11 @@ from nltk.corpus import wordnet  # noqa
 class ModelDecisionMaker:
     def __init__(self):
 
-        self.kai = pd.read_csv('kai.csv', encoding='ISO-8859-1') #change path
-        self.robert = pd.read_csv('robert.csv', encoding='ISO-8859-1')
-        self.gabrielle = pd.read_csv('gabrielle.csv', encoding='ISO-8859-1')
-        self.arman = pd.read_csv('arman.csv', encoding='ISO-8859-1')
-        self.olivia = pd.read_csv('olivia.csv', encoding='ISO-8859-1')
+        self.kai = pd.read_csv('/home/ccys/SATbot2.0/model/kai.csv', encoding='ISO-8859-1') #change path
+        self.robert = pd.read_csv('/home/ccys/SATbot2.0/model/robert.csv', encoding='ISO-8859-1')
+        self.gabrielle = pd.read_csv('/home/ccys/SATbot2.0/model/gabrielle.csv', encoding='ISO-8859-1')
+        self.arman = pd.read_csv('/home/ccys/SATbot2.0/model/arman.csv', encoding='ISO-8859-1')
+        self.olivia = pd.read_csv('/home/ccys/SATbot2.0/model/olivia.csv', encoding='ISO-8859-1')
 
         # Titles from workshops (Title 7 adapted to give more information)
         self.PROTOCOL_TITLES = [

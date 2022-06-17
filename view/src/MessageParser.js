@@ -1,5 +1,4 @@
 // MessageParser starter code
-
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 /*class MessageParser {
   constructor(actionProvider, state) {
@@ -34,7 +33,7 @@ class MessageParser {
   constructor(actionProvider, state) {
     this.actionProvider = actionProvider;
     this.state = state;
-    this.recognition = new SpeechRecognition()
+    /*this.recognition = new SpeechRecognition()
     this.recognition.continuous = false
     this.recognition.interimResults = false
     this.recognition.lang = 'en-US'
@@ -43,7 +42,44 @@ class MessageParser {
     this.recognition.onresult = (e) => {
       const transcript = e.results[0][0].transcript;
       this.recognition.abort()
+      mediaRecorder.stop();
+      chunks.push(mediaRecorder.requestData())
       this.parse(transcript)
+    }*/
+
+    if (navigator.mediaDevices.getUserMedia) {
+      console.log('getUserMedia supported.');
+      let chunks = [];
+      var options = {
+        audioBitsPerSecond: 128000,
+        mimeTyoe: 'audio/wav'
+      }
+      var audio, blob, audioURL;
+      navigator.mediaDevices.getUserMedia( { audio: true, } )
+      .then(function (stream) {
+        const mediaRecorder = new MediaRecorder(stream, options);
+        mediaRecorder.start();
+        setTimeout(function () {
+          mediaRecorder.stop()
+      }, 5000);
+        mediaRecorder.onstop = function (e) {
+          console.log("data available after MediaRecorder.stop() called.");
+          audio = document.createElement('audio');
+          blob = new Blob(chunks, { 'type': 'audio/wav; codecs=0' });
+          audioURL = window.URL.createObjectURL(blob);
+          audio.src = audioURL;
+          console.log("recorder stopped");
+          const recording = new Audio(audioURL)
+          recording.play()
+        }
+        mediaRecorder.ondataavailable = function(e) {
+          chunks.push(e.data);
+        }
+        
+      }
+      )
+    } else {
+      console.log('getUserMedia Unsupported.');
     }
   }
 
@@ -73,7 +109,7 @@ class MessageParser {
       setTimeout(() => {
         this.recognition.start()
       }, 500)
-      
+
       return this.actionProvider.askForProtocol()
     }
     else {
@@ -105,7 +141,7 @@ class MessageParser {
           user_choice: message,
           input_type: input_type,
         };
-        
+
         return this.actionProvider.sendRequest(choice_info);
       }
     }
@@ -114,7 +150,7 @@ class MessageParser {
   capitaliseFirstLetter(string) {
     return string.charAt(0).toUpperCase() + string.slice(1);
   }
-  
+
 }
 
 export default MessageParser;
