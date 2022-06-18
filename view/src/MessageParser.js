@@ -31,7 +31,7 @@ const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecogni
 export default MessageParser*/
 class MessageParser {
   constructor(actionProvider, state) {
-    var audio, blob, audioURL, mediaRecorder;
+    var audio = null, blob = null, audioURL = null, mediaRecorder = null;
     let chunks = [];
     this.actionProvider = actionProvider;
     this.state = state;
@@ -76,7 +76,7 @@ class MessageParser {
       mediaRecorder.ondataavailable = function (e) {
         chunks.push(e.data);
       }
-      this.parse(transcript)
+      this.parse(transcript, audio)
     }
   }
 
@@ -114,7 +114,7 @@ class MessageParser {
 
 
   // This method is called inside the chatbot when it receives a message from the user.
-  parse(message) {
+  parse(message, audio) {
     // Case: User has not provided id yet
     if (this.state.username == null) {
       return this.actionProvider.askForPassword(message);

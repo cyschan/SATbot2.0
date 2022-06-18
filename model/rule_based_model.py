@@ -635,7 +635,7 @@ class ModelDecisionMaker:
         emotion = get_emotion(user_response)
         #emotion = np.random.choice(["Happy", "Sad", "Angry", "Anxious"]) #random choice to be replaced with emotion classifier
         if emotion == 'fear':
-            self.guess_emotion_predictions[user_id] = 'Anxious/Scared'
+            self.guess_emotion_predictions[user_id] = 'Anxious or scared'
             self.user_emotions[user_id] = 'Anxious'
         elif emotion == 'sadness':
             self.guess_emotion_predictions[user_id] = 'Sad'
@@ -644,7 +644,7 @@ class ModelDecisionMaker:
             self.guess_emotion_predictions[user_id] = 'Angry'
             self.user_emotions[user_id] = 'Angry'
         else:
-            self.guess_emotion_predictions[user_id] = 'Happy/Content'
+            self.guess_emotion_predictions[user_id] = 'Happy or content'
             self.user_emotions[user_id] = 'Happy'
         #self.guess_emotion_predictions[user_id] = emotion
         #self.user_emotions[user_id] = emotion
@@ -713,11 +713,11 @@ class ModelDecisionMaker:
         self.user_emotions[user_id] = "Angry"
         return "after_classification_negative"
     def get_anxious_emotion(self, user_id):
-        self.guess_emotion_predictions[user_id] = "Anxious/Scared"
+        self.guess_emotion_predictions[user_id] = "Anxious or scared"
         self.user_emotions[user_id] = "Anxious"
         return "after_classification_negative"
     def get_happy_emotion(self, user_id):
-        self.guess_emotion_predictions[user_id] = "Happy/Content"
+        self.guess_emotion_predictions[user_id] = "Happy or content"
         self.user_emotions[user_id] = "Happy"
         return "after_classification_positive"
 
@@ -1229,12 +1229,12 @@ class ModelDecisionMaker:
                 elif user_choice == "Angry":
                     next_choice = current_choice_for_question["Angry"]
                     protocols_chosen = current_protocols["Angry"]
-                elif user_choice == "Anxious/Scared":
-                    next_choice = current_choice_for_question["Anxious/Scared"]
-                    protocols_chosen = current_protocols["Anxious/Scared"]
+                elif user_choice == "Anxious or scared":
+                    next_choice = current_choice_for_question["Anxious or scared"]
+                    protocols_chosen = current_protocols["Anxious or scared"]
                 else:
-                    next_choice = current_choice_for_question["Happy/Content"]
-                    protocols_chosen = current_protocols["Happy/Content"]
+                    next_choice = current_choice_for_question["Happy or content"]
+                    protocols_chosen = current_protocols["Happy or content"]
             else:
                 next_choice = current_choice_for_question[user_choice]
                 protocols_chosen = current_protocols[user_choice]
@@ -1251,10 +1251,10 @@ class ModelDecisionMaker:
                 next_choice = next_choice["Sad"]
             elif self.guess_emotion_predictions[user_id] == "Angry":
                 next_choice = next_choice["Angry"]
-            elif self.guess_emotion_predictions[user_id] == "Anxious/Scared":
-                next_choice = next_choice["Anxious/Scared"]
+            elif self.guess_emotion_predictions[user_id] == "Anxious or scared":
+                next_choice = next_choice["Anxious or scared"]
             else:
-                next_choice = next_choice["Happy/Content"]
+                next_choice = next_choice["Happy or content"]
 
         if callable(protocols_chosen):
             protocols_chosen = protocols_chosen(user_id, db_session, user_session, app)

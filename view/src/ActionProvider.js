@@ -101,6 +101,17 @@ class ActionProvider {
     this.handleReceivedData(response.data);
   };
 
+  uploadSpeech = async(audio, transcript) => {
+    const uri = `http://localhost:5000/api/speech_emotion`;
+    const data = new FormData();
+    //const text = {transcript : transcript}
+    data.append("file", audio);
+    data.append("text", transcript);
+    const response = await axios.post(uri, {data});
+    console.log("Retrieved response");
+    console.log(response);
+  }
+
   handleReceivedData = (dataReceived) => {
     // dataReceived = {
     //   chatbot_response: "This is the chatbot message to display",
@@ -118,7 +129,7 @@ class ActionProvider {
       optionsToShow = "Continue"
     } else if (userOptions.length === 2 && userOptions[0] === "yes" && userOptions[1] === "no") {
       optionsToShow = "YesNo"
-    } else if (userOptions.length === 2 && userOptions[0] === "yes, i would like to try one of these protocols" && userOptions[1] === "no, i would like to try something else") {
+    } else if (userOptions.length === 2 && userOptions[0] === "yes i would like to try one of these protocols" && userOptions[1] === "no i would like to try something else") {
       optionsToShow = "YesNoProtocols"
     } else if (userOptions.length === 2 && userOptions[0] === "recent" && userOptions[1] === "distant") {
       optionsToShow = "RecentDistant"

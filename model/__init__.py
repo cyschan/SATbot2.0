@@ -9,7 +9,7 @@ import logging
 import datetime
 from dotenv import load_dotenv
 
-from werkzeug import secure_filename
+from werkzeug.utils import secure_filename
 import numpy as np
 import wavio
 
@@ -190,17 +190,14 @@ def create_app():
             f = request.files['file']
             f_name = secure_filename(f.filename)
             f.save(os.path.join(app.config['UPLOAD_FOLDER'], f_name))
-            text = request.form['transcript']
+            text = request.form['text']
             audio = model.load_audio(f).unsqueeze(dim=0)
             tokens = model.tokenizer.tokenize(text)
             tokens = ['[CLS]'] + tokens + ['[SEP]']
             token_ids = torch.tensor(model.tokenizer.convert_tokens_to_ids(tokens)).unsqueeze(dim=0)
             #prediction = tool.predict(model, audio, token_ids, attention_mask)
             #pred_emotion = tool.process_pred(prediction, emotions_to_predict, thresholds=thresholds, model_type='multilabel')
-            
-            
-
-
+            return {"code": 200}
     return app
 
 
