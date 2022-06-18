@@ -101,14 +101,21 @@ class ActionProvider {
     this.handleReceivedData(response.data);
   };
 
-  uploadSpeech = async(audio, transcript) => {
+  uploadSpeech = async (audio, transcript) => {
     const uri = `http://localhost:5000/api/speech_emotion`;
     const data = new FormData();
     //const text = {transcript : transcript}
     data.append("file", audio);
     data.append("text", transcript);
-    const response = await axios.post(uri, {data});
-    console.log("Retrieved response");
+    console.log("Sending POST request");
+    const response = await axios({
+      method: 'post',
+      url: uri,
+      data: data,
+      headers: {
+          'Content-Type': `multipart/form-data`,
+      }
+    })
     console.log(response);
   }
 

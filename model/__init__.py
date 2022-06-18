@@ -179,25 +179,24 @@ def create_app():
             "user_options": output["choices"],
         }
 
-    return app
-
     @app.route("/api/speech_emotion", methods=["POST"])
     # https://stackoverflow.com/questions/70754829/upload-files-and-a-string-in-same-flask-request
-    def upload():
+    def speech_emotion():
         if request.method == 'POST' and 'file' in request.files:
             # model = tool.get_model(emotions_to_predict, model_path='multilabel7.pth', model_type='multilabel')
             # model, audio, token_ids, attention_mask = tool.load_data(model, audiofile=data_file, model_type='multilabel')
             f = request.files['file']
             f_name = secure_filename(f.filename)
-            f.save(os.path.join(app.config['UPLOAD_FOLDER'], f_name))
+            f.save(os.path.join('/home/ccys/SATbot2.0/model/uploads', f_name))
             text = request.form['text']
-            audio = model.load_audio(f).unsqueeze(dim=0)
-            tokens = model.tokenizer.tokenize(text)
-            tokens = ['[CLS]'] + tokens + ['[SEP]']
-            token_ids = torch.tensor(model.tokenizer.convert_tokens_to_ids(tokens)).unsqueeze(dim=0)
+            #audio = model.load_audio(f).unsqueeze(dim=0)
+            #tokens = model.tokenizer.tokenize(text)
+            #tokens = ['[CLS]'] + tokens + ['[SEP]']
+            #token_ids = torch.tensor(model.tokenizer.convert_tokens_to_ids(tokens)).unsqueeze(dim=0)
             #prediction = tool.predict(model, audio, token_ids, attention_mask)
             #pred_emotion = tool.process_pred(prediction, emotions_to_predict, thresholds=thresholds, model_type='multilabel')
             return {"code": 200}
+        return {"code": 500}
     return app
 
 

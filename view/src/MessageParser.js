@@ -31,7 +31,9 @@ const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecogni
 export default MessageParser*/
 class MessageParser {
   constructor(actionProvider, state) {
-    var audio = null, blob = null, audioURL = null, mediaRecorder = null;
+    let mp = this;
+    var audio = null, blob = null, audioURL = null;
+    this.mediaRecorder = null;
     let chunks = [];
     this.actionProvider = actionProvider;
     this.state = state;
@@ -47,12 +49,12 @@ class MessageParser {
         let chunks = [];
         var options = {
           audioBitsPerSecond: 128000,
-          mimeTyoe: 'audio/wav'
+          mimeTyoe: 'audio/webm'
         }
         navigator.mediaDevices.getUserMedia({ audio: true, })
           .then(function (stream) {
-            mediaRecorder = new MediaRecorder(stream, options);
-            mediaRecorder.start();
+            mp.mediaRecorder = new MediaRecorder(stream, options);
+            mp.mediaRecorder.start();
           })
       } else {
         console.log('getUserMedia Unsupported.');
@@ -61,22 +63,25 @@ class MessageParser {
 
     this.recognition.onresult = (e) => {
       const transcript = e.results[0][0].transcript;
+      var audioURL = null;
+      mp.mediaRecorder.stop();
       this.recognition.abort()
-      mediaRecorder.stop();
-      mediaRecorder.onstop = function (e) {
+      mp.mediaRecorder.onstop = function (e) {
         console.log("data available after MediaRecorder.stop() called.");
         audio = document.createElement('audio');
-        blob = new Blob(chunks, { 'type': 'audio/wav; codecs=0' });
+        blob = new Blob(chunks, { 'type': 'audio/webm; codecs=opus' });
         audioURL = window.URL.createObjectURL(blob);
         audio.src = audioURL;
         console.log("recorder stopped");
         const recording = new Audio(audioURL)
         recording.play()
+        mp.parse(transcript, blob)
       }
-      mediaRecorder.ondataavailable = function (e) {
+      mp.mediaRecorder.ondataavailable = function (e) {
         chunks.push(e.data);
       }
-      this.parse(transcript, audio)
+
+      this.parse(transcript)
     }
   }
 
@@ -114,7 +119,7 @@ class MessageParser {
 
 
   // This method is called inside the chatbot when it receives a message from the user.
-  parse(message, audio) {
+  parse(message, audio = null) {
     // Case: User has not provided id yet
     if (this.state.username == null) {
       return this.actionProvider.askForPassword(message);
@@ -145,9 +150,9 @@ class MessageParser {
     else {
       message = this.capitaliseFirstLetter(message)
       console.log(message)
-      setTimeout(() => {
+      /*setTimeout(() => {
         this.recognition.start()
-      }, 500)
+      }, 500)*/
       let input_type = null;
       if (this.state.inputType.length === 1) {
         if (this.state.messages[this.state.messages.length - 1].hasOwnProperty('widget') && this.state.messages[this.state.messages.length - 1].widget != null){
@@ -175,6 +180,10 @@ class MessageParser {
           user_choice: message,
           input_type: input_type,
         };
+
+        if (audio != null){
+          console.log(this.actionProvider.uploadSpeech(audio, message));
+        }
 
         return this.actionProvider.sendRequest(choice_info);
       }
