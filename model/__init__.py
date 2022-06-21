@@ -10,8 +10,7 @@ import datetime
 from dotenv import load_dotenv
 
 from werkzeug.utils import secure_filename
-import numpy as np
-import wavio
+from pydub import AudioSegment
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 load_dotenv(os.path.join(basedir, ".env"))
@@ -185,10 +184,14 @@ def create_app():
         if request.method == 'POST' and 'file' in request.files:
             # model = tool.get_model(emotions_to_predict, model_path='multilabel7.pth', model_type='multilabel')
             # model, audio, token_ids, attention_mask = tool.load_data(model, audiofile=data_file, model_type='multilabel')
+            path = '/home/ccys/SATbot2.0/model/uploads'
             f = request.files['file']
             f_name = secure_filename(f.filename)
-            f.save(os.path.join('/home/ccys/SATbot2.0/model/uploads', f_name))
+            f.save(os.path.join(path, f_name))
             text = request.form['text']
+            audio = AudioSegment.from_file(path, "webm").export(os.path.join(path, f_name) + ".wav", format="wav")
+            #audio = AudioFileClip(os.path.join('/home/ccys/SATbot2.0/model/uploads', f_name + '.webm'))
+            #audio.write_audiofile(f_name + '.wav')
             #audio = model.load_audio(f).unsqueeze(dim=0)
             #tokens = model.tokenizer.tokenize(text)
             #tokens = ['[CLS]'] + tokens + ['[SEP]']
