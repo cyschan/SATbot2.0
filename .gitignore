@@ -1,4 +1,5 @@
 venv/
+model/uploads/
 model/RobertaForEmotionclassification.pt
 model/T5_small_emotion.pt
 model/T5_small_empathy.pt

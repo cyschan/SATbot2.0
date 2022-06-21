@@ -80,8 +80,11 @@ class MessageParser {
       mp.mediaRecorder.ondataavailable = function (e) {
         chunks.push(e.data);
       }
-
-      this.parse(transcript)
+      mp.mediaRecorder.then = function(){
+        if (blob != null){
+          mp.parse(transcript)
+        }
+      }
     }
   }
 
@@ -121,6 +124,9 @@ class MessageParser {
   // This method is called inside the chatbot when it receives a message from the user.
   parse(message, audio = null) {
     // Case: User has not provided id yet
+    if (audio != null){
+      console.log(this.actionProvider.uploadSpeech(audio, message));
+    }
     if (this.state.username == null) {
       return this.actionProvider.askForPassword(message);
     } else if (this.state.password == null) {
@@ -181,9 +187,7 @@ class MessageParser {
           input_type: input_type,
         };
 
-        if (audio != null){
-          console.log(this.actionProvider.uploadSpeech(audio, message));
-        }
+
 
         return this.actionProvider.sendRequest(choice_info);
       }
