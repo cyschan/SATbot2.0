@@ -1,0 +1,7 @@
+wavio
+moviepy==1.0.3
+pydub==0.25.1
+ffmpeg (apt-get)
+librosa==0.7.2
+numba==0.48
+SpeechRecognition

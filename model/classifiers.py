@@ -60,12 +60,12 @@ args = argparse.Namespace(**args_dict)
 #load emotion classifier (T5 small)
 with torch.no_grad():
     emo_model = T5FineTuner(args)
-    emo_model.load_state_dict(torch.load('T5_small_emotion.pt', map_location=torch.device('cpu')))
+    emo_model.load_state_dict(torch.load('/home/ccys/SATbot2.0/model/T5_small_emotion.pt', map_location=torch.device('cpu')))
 
 #load empathy classifier (T5 small)
 with torch.no_grad():
     emp_model = T5FineTuner(args)
-    emp_model.load_state_dict(torch.load('T5_small_empathy.pt', map_location=torch.device('cpu'))) #change path
+    emp_model.load_state_dict(torch.load('/home/ccys/SATbot2.0/model/T5_small_empathy.pt', map_location=torch.device('cpu'))) #change path
 
 #Load pre-trained GPT2 language model weights
 with torch.no_grad():

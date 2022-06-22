@@ -7,10 +7,15 @@ from flask_cors import CORS
 import os
 import logging
 import datetime
+import model.speech_util as speech_util
 from dotenv import load_dotenv
+
+from werkzeug.utils import secure_filename
+from pydub import AudioSegment
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 load_dotenv(os.path.join(basedir, ".env"))
+UPLOAD_FOLDER = './uploads'
 
 
 # For dev logging - comment out for Gunicorn
@@ -27,6 +32,8 @@ migrate = Migrate()  # <-Initialize migration object
 def create_app():
     """Construct core application"""
     app = Flask(__name__)
+
+    app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
     # For Gunicorn logging
     # gunicorn_logger = logging.getLogger('gunicorn.error')
@@ -172,6 +179,19 @@ def create_app():
             "user_options": output["choices"],
         }
 
+    @app.route("/api/speech_emotion", methods=["POST"])
+    # https://stackoverflow.com/questions/70754829/upload-files-and-a-string-in-same-flask-request
+    def speech_emotion():
+        if request.method == 'POST' and 'file' in request.files:
+            path = '/home/ccys/SATbot2.0/model/uploads/'
+            f = request.files['file']
+            f_name = secure_filename(f.filename)
+            f.save(path + f_name)
+            text = request.form['text']
+            audio = AudioSegment.from_file(path + f_name, "webm").export(path + f_name + ".wav", format="wav")
+            prediction = speech_util.get_emotion(audio, text)
+            return prediction
+        return 'err'
     return app
 
 
