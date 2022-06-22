@@ -5,3 +5,4 @@ model/T5_small_emotion.pt
 model/T5_small_empathy.pt
 view/node_modules/
 model/speech_emotion
+model/speech_emotion/multilabel7.pth

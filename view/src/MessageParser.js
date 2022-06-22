@@ -152,10 +152,11 @@ class MessageParser {
       return this.actionProvider.askForProtocol()
     }
     else {
-      if (audio != null){
-        console.log(this.actionProvider.uploadSpeech(audio, message));
-      }
       message = this.capitaliseFirstLetter(message)
+      if (audio != null){
+        console.log(this.actionProvider.uploadSpeech(audio, message))
+        this.actionProvider.addSpokenMessage(message)
+      }
       console.log(message)
       /*setTimeout(() => {
         this.recognition.start()

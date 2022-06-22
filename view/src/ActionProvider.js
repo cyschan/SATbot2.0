@@ -214,6 +214,12 @@ class ActionProvider {
     return this.sendRequest(dataToSend);
   };
 
+  // Add spoken message to bot interface
+  addSpokenMessage = (userInput) => {
+    let message = this.createClientMessage(userInput);
+    this.addMessageToBotState(message);
+  }
+
   askForProtocol = () => {
     let message = "Please type a protocol number (1-20), using the workshops to help you."
     this.addMessageToBotState(message);
