@@ -124,9 +124,7 @@ class MessageParser {
   // This method is called inside the chatbot when it receives a message from the user.
   parse(message, audio = null) {
     // Case: User has not provided id yet
-    if (audio != null){
-      console.log(this.actionProvider.uploadSpeech(audio, message));
-    }
+
     if (this.state.username == null) {
       return this.actionProvider.askForPassword(message);
     } else if (this.state.password == null) {
@@ -154,6 +152,9 @@ class MessageParser {
       return this.actionProvider.askForProtocol()
     }
     else {
+      if (audio != null){
+        console.log(this.actionProvider.uploadSpeech(audio, message));
+      }
       message = this.capitaliseFirstLetter(message)
       console.log(message)
       /*setTimeout(() => {

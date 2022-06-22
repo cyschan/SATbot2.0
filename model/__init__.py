@@ -7,6 +7,7 @@ from flask_cors import CORS
 import os
 import logging
 import datetime
+import model.speech_util as speech_util
 from dotenv import load_dotenv
 
 from werkzeug.utils import secure_filename
@@ -182,24 +183,15 @@ def create_app():
     # https://stackoverflow.com/questions/70754829/upload-files-and-a-string-in-same-flask-request
     def speech_emotion():
         if request.method == 'POST' and 'file' in request.files:
-            # model = tool.get_model(emotions_to_predict, model_path='multilabel7.pth', model_type='multilabel')
-            # model, audio, token_ids, attention_mask = tool.load_data(model, audiofile=data_file, model_type='multilabel')
-            path = '/home/ccys/SATbot2.0/model/uploads'
+            path = '/home/ccys/SATbot2.0/model/uploads/'
             f = request.files['file']
             f_name = secure_filename(f.filename)
-            f.save(os.path.join(path, f_name))
+            f.save(path + f_name)
             text = request.form['text']
-            audio = AudioSegment.from_file(path, "webm").export(os.path.join(path, f_name) + ".wav", format="wav")
-            #audio = AudioFileClip(os.path.join('/home/ccys/SATbot2.0/model/uploads', f_name + '.webm'))
-            #audio.write_audiofile(f_name + '.wav')
-            #audio = model.load_audio(f).unsqueeze(dim=0)
-            #tokens = model.tokenizer.tokenize(text)
-            #tokens = ['[CLS]'] + tokens + ['[SEP]']
-            #token_ids = torch.tensor(model.tokenizer.convert_tokens_to_ids(tokens)).unsqueeze(dim=0)
-            #prediction = tool.predict(model, audio, token_ids, attention_mask)
-            #pred_emotion = tool.process_pred(prediction, emotions_to_predict, thresholds=thresholds, model_type='multilabel')
-            return {"code": 200}
-        return {"code": 500}
+            audio = AudioSegment.from_file(path + f_name, "webm").export(path + f_name + ".wav", format="wav")
+            prediction = speech_util.get_emotion(audio, text)
+            return prediction
+        return 'err'
     return app
 
 
