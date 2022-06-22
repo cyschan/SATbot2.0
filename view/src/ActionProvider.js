@@ -5,6 +5,12 @@ class ActionProvider {
     this.createChatBotMessage = createChatBotMessage;
     this.setState = setStateFunc;
     this.createClientMessage = createClientMessage;
+    /*this.speechEnabled = false;
+    this.recognition = new SpeechRecognition()
+    this.recognition.continuous = false
+    this.recognition.interimResults = false
+    this.recognition.lang = 'en-US'
+    this.recognition.maxAlternatives = 1;*/
   }
 
 
@@ -20,7 +26,6 @@ class ActionProvider {
         withAvatar: true,
       }
     );
-
     this.addMessageToBotState(messages);
   }
 
@@ -96,6 +101,24 @@ class ActionProvider {
     this.handleReceivedData(response.data);
   };
 
+  uploadSpeech = async (audio, transcript) => {
+    const uri = `http://localhost:5000/api/speech_emotion`;
+    const data = new FormData();
+    //const text = {transcript : transcript}
+    data.append("file", audio);
+    data.append("text", transcript);
+    console.log("Sending POST request");
+    const response = await axios({
+      method: 'post',
+      url: uri,
+      data: data,
+      headers: {
+          'Content-Type': `multipart/form-data`,
+      }
+    })
+    console.log(response);
+  }
+
   handleReceivedData = (dataReceived) => {
     // dataReceived = {
     //   chatbot_response: "This is the chatbot message to display",
@@ -113,7 +136,7 @@ class ActionProvider {
       optionsToShow = "Continue"
     } else if (userOptions.length === 2 && userOptions[0] === "yes" && userOptions[1] === "no") {
       optionsToShow = "YesNo"
-    } else if (userOptions.length === 2 && userOptions[0] === "yes, i would like to try one of these protocols" && userOptions[1] === "no, i would like to try something else") {
+    } else if (userOptions.length === 2 && userOptions[0] === "yes i would like to try one of these protocols" && userOptions[1] === "no i would like to try something else") {
       optionsToShow = "YesNoProtocols"
     } else if (userOptions.length === 2 && userOptions[0] === "recent" && userOptions[1] === "distant") {
       optionsToShow = "RecentDistant"

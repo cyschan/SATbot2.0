@@ -17,11 +17,11 @@ from nltk.corpus import wordnet  # noqa
 class ModelDecisionMaker:
     def __init__(self):
 
-        self.kai = pd.read_csv('kai.csv', encoding='ISO-8859-1') #change path
-        self.robert = pd.read_csv('robert.csv', encoding='ISO-8859-1')
-        self.gabrielle = pd.read_csv('gabrielle.csv', encoding='ISO-8859-1')
-        self.arman = pd.read_csv('arman.csv', encoding='ISO-8859-1')
-        self.olivia = pd.read_csv('olivia.csv', encoding='ISO-8859-1')
+        self.kai = pd.read_csv('/home/ccys/SATbot2.0/model/kai.csv', encoding='ISO-8859-1') #change path
+        self.robert = pd.read_csv('/home/ccys/SATbot2.0/model/robert.csv', encoding='ISO-8859-1')
+        self.gabrielle = pd.read_csv('/home/ccys/SATbot2.0/model/gabrielle.csv', encoding='ISO-8859-1')
+        self.arman = pd.read_csv('/home/ccys/SATbot2.0/model/arman.csv', encoding='ISO-8859-1')
+        self.olivia = pd.read_csv('/home/ccys/SATbot2.0/model/olivia.csv', encoding='ISO-8859-1')
 
         # Titles from workshops (Title 7 adapted to give more information)
         self.PROTOCOL_TITLES = [
@@ -150,8 +150,8 @@ class ModelDecisionMaker:
                     "yes": {
                         "Sad": "after_classification_negative",
                         "Angry": "after_classification_negative",
-                        "Anxious/Scared": "after_classification_negative",
-                        "Happy/Content": "after_classification_positive",
+                        "Anxious or scared": "after_classification_negative",
+                        "Happy or content": "after_classification_positive",
                     },
                     "no": "check_emotion",
                 },
@@ -168,14 +168,14 @@ class ModelDecisionMaker:
                 "choices": {
                     "Sad": lambda user_id, db_session, curr_session, app: self.get_sad_emotion(user_id),
                     "Angry": lambda user_id, db_session, curr_session, app: self.get_angry_emotion(user_id),
-                    "Anxious/Scared": lambda user_id, db_session, curr_session, app: self.get_anxious_emotion(user_id),
-                    "Happy/Content": lambda user_id, db_session, curr_session, app: self.get_happy_emotion(user_id),
+                    "Anxious or scared": lambda user_id, db_session, curr_session, app: self.get_anxious_emotion(user_id),
+                    "Happy or content": lambda user_id, db_session, curr_session, app: self.get_happy_emotion(user_id),
                 },
                 "protocols": {
                     "Sad": [],
                     "Angry": [],
-                    "Anxious/Scared" : [],
-                    "Happy/Content": []
+                    "Anxious or scared" : [],
+                    "Happy or content": []
                 },
             },
 
@@ -186,12 +186,12 @@ class ModelDecisionMaker:
                 "model_prompt": lambda user_id, db_session, curr_session, app: self.get_model_prompt_specific_event(user_id, app, db_session),
 
                 "choices": {
-                    "Yes, something happened": "event_is_recent",
-                    "No, it's just a general feeling": "more_questions",
+                    "Yes something happened": "event_is_recent",
+                    "No it's just a general feeling": "more_questions",
                 },
                 "protocols": {
-                    "Yes, something happened": [],
-                    "No, it's just a general feeling": []
+                    "Yes something happened": [],
+                    "No it's just a general feeling": []
                 },
             },
 
@@ -238,11 +238,11 @@ class ModelDecisionMaker:
                 "model_prompt": lambda user_id, db_session, curr_session, app: self.get_model_prompt_more_questions(user_id, app, db_session),
 
                 "choices": {
-                    "Okay": lambda user_id, db_session, curr_session, app: self.get_next_question(user_id),
+                    "Ok": lambda user_id, db_session, curr_session, app: self.get_next_question(user_id),
                     "I'd rather not": "project_emotion",
                 },
                 "protocols": {
-                    "Okay": [],
+                    "Ok": [],
                     "I'd rather not": [self.PROTOCOL_TITLES[13]],
                 },
             },
@@ -345,13 +345,13 @@ class ModelDecisionMaker:
                 "model_prompt": lambda user_id, db_session, curr_session, app: self.get_model_prompt_happy(user_id, app, db_session),
 
                 "choices": {
-                    "Okay": "suggestions",
-                    "No, thank you": "ending_prompt"
+                    "Ok": "suggestions",
+                    "No thank you": "ending_prompt"
                 },
                 "protocols": {
-                    "Okay": [self.PROTOCOL_TITLES[9], self.PROTOCOL_TITLES[10], self.PROTOCOL_TITLES[11]], #change here?
+                    "Ok": [self.PROTOCOL_TITLES[9], self.PROTOCOL_TITLES[10], self.PROTOCOL_TITLES[11]], #change here?
                     #[self.PROTOCOL_TITLES[k] for k in self.positive_protocols],
-                    "No, thank you": []
+                    "No thank you": []
                 },
             },
 
@@ -408,16 +408,24 @@ class ModelDecisionMaker:
                 "model_prompt": lambda user_id, db_session, curr_session, app: self.get_model_prompt_new_better(user_id, app, db_session),
 
                 "choices": {
-                    "Yes (show follow-up suggestions)": lambda user_id, db_session, curr_session, app: self.determine_next_prompt_new_protocol(
+                    #"Yes (show follow-up suggestions)": lambda user_id, db_session, curr_session, app: self.determine_next_prompt_new_protocol(
+                    #    user_id, app
+                    #),
+                    #"Yes (restart questions)": "restart_prompt",
+                    #"No (end session)": "ending_prompt",
+                    "Show follow up suggestions": lambda user_id, db_session, curr_session, app: self.determine_next_prompt_new_protocol(
                         user_id, app
                     ),
-                    "Yes (restart questions)": "restart_prompt",
-                    "No (end session)": "ending_prompt",
+                    "Restart": "restart_prompt",
+                    "End session": "ending_prompt"
                 },
                 "protocols": {
-                    "Yes (show follow-up suggestions)": [],
-                    "Yes (restart questions)": [],
-                    "No (end session)": []
+                    #"Yes (show follow-up suggestions)": [],
+                    #"Yes (restart questions)": [],
+                    #"No (end session)": []
+                    "Show follow up suggestions": [],
+                    "Restart":[],
+                    "End session": []
                 },
             },
 
@@ -425,16 +433,16 @@ class ModelDecisionMaker:
                 "model_prompt": lambda user_id, db_session, curr_session, app: self.get_model_prompt_new_worse(user_id, app, db_session),
 
                 "choices": {
-                    "Yes (show follow-up suggestions)": lambda user_id, db_session, curr_session, app: self.determine_next_prompt_new_protocol(
+                    "Show follow up suggestions": lambda user_id, db_session, curr_session, app: self.determine_next_prompt_new_protocol(
                         user_id, app
                     ),
-                    "Yes (restart questions)": "restart_prompt",
-                    "No (end session)": "ending_prompt",
+                    "Restart": "restart_prompt",
+                    "End session": "ending_prompt",
                 },
                 "protocols": {
-                    "Yes (show follow-up suggestions)": [],
-                    "Yes (restart questions)": [],
-                    "No (end session)": []
+                    "Show follow up suggestions": [],
+                    "Restart": [],
+                    "End session": []
                 },
             },
 
@@ -446,16 +454,16 @@ class ModelDecisionMaker:
                                 ],
 
                 "choices": {
-                    "Yes (show follow-up suggestions)": lambda user_id, db_session, curr_session, app: self.determine_next_prompt_new_protocol(
+                    "Show follow up suggestions": lambda user_id, db_session, curr_session, app: self.determine_next_prompt_new_protocol(
                         user_id, app
                     ),
-                    "Yes (restart questions)": "restart_prompt",
-                    "No (end session)": "ending_prompt",
+                    "Restart": "restart_prompt",
+                    "End session": "ending_prompt",
                 },
                 "protocols": {
-                    "Yes (show follow-up suggestions)": [],
-                    "Yes (restart questions)": [],
-                    "No (end session)": []
+                    "Show follow up suggestions": [],
+                    "Restart": [],
+                    "End session": []
                 },
             },
 
@@ -627,7 +635,7 @@ class ModelDecisionMaker:
         emotion = get_emotion(user_response)
         #emotion = np.random.choice(["Happy", "Sad", "Angry", "Anxious"]) #random choice to be replaced with emotion classifier
         if emotion == 'fear':
-            self.guess_emotion_predictions[user_id] = 'Anxious/Scared'
+            self.guess_emotion_predictions[user_id] = 'Anxious or scared'
             self.user_emotions[user_id] = 'Anxious'
         elif emotion == 'sadness':
             self.guess_emotion_predictions[user_id] = 'Sad'
@@ -636,7 +644,7 @@ class ModelDecisionMaker:
             self.guess_emotion_predictions[user_id] = 'Angry'
             self.user_emotions[user_id] = 'Angry'
         else:
-            self.guess_emotion_predictions[user_id] = 'Happy/Content'
+            self.guess_emotion_predictions[user_id] = 'Happy or content'
             self.user_emotions[user_id] = 'Happy'
         #self.guess_emotion_predictions[user_id] = emotion
         #self.user_emotions[user_id] = emotion
@@ -705,11 +713,11 @@ class ModelDecisionMaker:
         self.user_emotions[user_id] = "Angry"
         return "after_classification_negative"
     def get_anxious_emotion(self, user_id):
-        self.guess_emotion_predictions[user_id] = "Anxious/Scared"
+        self.guess_emotion_predictions[user_id] = "Anxious or scared"
         self.user_emotions[user_id] = "Anxious"
         return "after_classification_negative"
     def get_happy_emotion(self, user_id):
-        self.guess_emotion_predictions[user_id] = "Happy/Content"
+        self.guess_emotion_predictions[user_id] = "Happy or content"
         self.user_emotions[user_id] = "Happy"
         return "after_classification_positive"
 
@@ -1221,12 +1229,12 @@ class ModelDecisionMaker:
                 elif user_choice == "Angry":
                     next_choice = current_choice_for_question["Angry"]
                     protocols_chosen = current_protocols["Angry"]
-                elif user_choice == "Anxious/Scared":
-                    next_choice = current_choice_for_question["Anxious/Scared"]
-                    protocols_chosen = current_protocols["Anxious/Scared"]
+                elif user_choice == "Anxious or scared":
+                    next_choice = current_choice_for_question["Anxious or scared"]
+                    protocols_chosen = current_protocols["Anxious or scared"]
                 else:
-                    next_choice = current_choice_for_question["Happy/Content"]
-                    protocols_chosen = current_protocols["Happy/Content"]
+                    next_choice = current_choice_for_question["Happy or content"]
+                    protocols_chosen = current_protocols["Happy or content"]
             else:
                 next_choice = current_choice_for_question[user_choice]
                 protocols_chosen = current_protocols[user_choice]
@@ -1243,10 +1251,10 @@ class ModelDecisionMaker:
                 next_choice = next_choice["Sad"]
             elif self.guess_emotion_predictions[user_id] == "Angry":
                 next_choice = next_choice["Angry"]
-            elif self.guess_emotion_predictions[user_id] == "Anxious/Scared":
-                next_choice = next_choice["Anxious/Scared"]
+            elif self.guess_emotion_predictions[user_id] == "Anxious or scared":
+                next_choice = next_choice["Anxious or scared"]
             else:
-                next_choice = next_choice["Happy/Content"]
+                next_choice = next_choice["Happy or content"]
 
         if callable(protocols_chosen):
             protocols_chosen = protocols_chosen(user_id, db_session, user_session, app)
