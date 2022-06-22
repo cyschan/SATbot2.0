@@ -29,7 +29,8 @@ flask db migrate -m "testDB table"
 flask db upgrade
 
 # ~ Launch flask ~ #
-flask run <- starts dev server
+flask run --no-reload <- starts dev server
+There may be issues with loading speech emotion reconignition's BERT model without --no-reload.  It also means the server instance will have to be restarted manually upon any code changes
 
 Commands for root dir:
 

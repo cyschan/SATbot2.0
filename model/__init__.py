@@ -29,9 +29,11 @@ db = SQLAlchemy()  # <-Initialize database object
 migrate = Migrate()  # <-Initialize migration object
 
 
+
 def create_app():
     """Construct core application"""
     app = Flask(__name__)
+    speech_analyser = speech_util.SpeechEmotionAnalyser()
 
     app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
@@ -50,6 +52,7 @@ def create_app():
     migrate.init_app(app, db)  # <- Migration directory
 
     CORS(app, resources={r"/*": {"origins": "*"}})
+
 
     from model import models  # noqa
     from model.models import User, UserModelSession  # noqa
@@ -189,15 +192,17 @@ def create_app():
             f.save(path + f_name)
             text = request.form['text']
             audio = AudioSegment.from_file(path + f_name, "webm").export(path + f_name + ".wav", format="wav")
-            prediction = speech_util.get_emotion(audio, text)
+            prediction = speech_analyser.get_emotion(audio, text)
             return prediction
         return 'err'
     return app
 
 
+
+
+if __name__ == "__main__":
+    create_app()
+
 from model.rule_based_model import ModelDecisionMaker  # noqa
 
 decision_maker = ModelDecisionMaker()
-
-if __name__ == "__main__":
-    app = create_app()
