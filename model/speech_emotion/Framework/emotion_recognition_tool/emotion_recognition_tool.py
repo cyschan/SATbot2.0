@@ -59,9 +59,14 @@ class EmotionRecognition:
             # Log these utterances for the demo
             librosa.output.write_wav('files/utterance_{}.wav'.format(self.utt_count), audio[0], 48000)
             self.utt_count += 1
-
-        audio = librosa.resample(audio[0], orig_sr=48000, target_sr=16000).astype(np.float32)
-
+        librosa.output.write_wav('/home/ccys/SATbot2.0/model/speech_emotion/utterance48000.wav', audio[0], 48000)
+        librosa.output.write_wav('/home/ccys/SATbot2.0/model/speech_emotion/utterance16000.wav', audio[0], 16000)
+        #audio = librosa.resample(audio[0], orig_sr=48000, target_sr=16000).astype(np.float32)
+        #resample = librosa.resample(audio[0], orig_sr=48000, target_sr=16000)
+        #librosa.output.write_wav('/home/ccys/SATbot2.0/model/speech_emotion/utterance16000.wav', resample[0], 16000)
+        #audio = librosa.resample(audio[0], orig_sr=48000, target_sr=48000).astype(np.float32)
+        audio = audio[0].astype(np.float32)
+        
         return torch.from_numpy(audio).float().to(self.device).view(-1, self.input_size)
 
     def check_transcript_valid(self, confidence, length):
