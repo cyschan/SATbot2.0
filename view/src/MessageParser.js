@@ -1,38 +1,9 @@
 // MessageParser starter code
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-/*class MessageParser {
-  constructor(actionProvider, state) {
-    this.actionProvider = actionProvider;
-    this.state = state;
-
-    this.recognition = new SpeechRecognition()
-    this.recognition.continous = false
-    this.recognition.interimResults = false
-    this.recognition.lang = 'en-US'
-    this.recognition.maxAlternatives = 1;
-
-    this.recognition.start()
-    this.recognition.onresult = (e) => {
-      const transcript = e.results[0][0].transcript;
-      this.recognition.abort()
-      this.parse(transcript)
-    }
-  }
-
-  parse(message) {
-    console.log(message)
-    setTimeout(() => {
-      this.recognition.start()
-    }, 500)
-    return this.actionProvider.askForPassword(message);
-  }
-}
-
-export default MessageParser*/
 class MessageParser {
   constructor(actionProvider, state) {
     let mp = this;
-    var audio = null, blob = null, audioURL = null;
+    var audio = null, blob = null;
     this.mediaRecorder = null;
     let chunks = [];
     this.actionProvider = actionProvider;
@@ -46,7 +17,7 @@ class MessageParser {
     this.recognition.onstart = function(){
       if (navigator.mediaDevices.getUserMedia) {
         //console.log('getUserMedia supported.');
-        let chunks = [];
+        //let chunks = [];
         var options = {
           audioBitsPerSecond: 128000,
           mimeTyoe: 'audio/webm'
@@ -73,8 +44,8 @@ class MessageParser {
         audioURL = window.URL.createObjectURL(blob);
         audio.src = audioURL;
         console.log("recorder stopped");
-        const recording = new Audio(audioURL)
-        recording.play()
+        //const recording = new Audio(audioURL)
+        //recording.play()
         mp.parse(transcript, blob)
       }
       mp.mediaRecorder.ondataavailable = function (e) {
@@ -87,39 +58,6 @@ class MessageParser {
       }
     }
   }
-
-
-  /*if (navigator.mediaDevices.getUserMedia) {
-    console.log('getUserMedia supported.');
-    let chunks = [];
-    var options = {
-      audioBitsPerSecond: 128000,
-      mimeTyoe: 'audio/wav'
-    }
-    navigator.mediaDevices.getUserMedia( { audio: true, } )
-    .then(function (stream) {
-      mediaRecorder = new MediaRecorder(stream, options);
-      mediaRecorder.start();
-      setTimeout(function () {
-        mediaRecorder.stop()
-    }, 5000);
-      mediaRecorder.onstop = function (e) {
-        console.log("data available after MediaRecorder.stop() called.");
-        audio = document.createElement('audio');
-        blob = new Blob(chunks, { 'type': 'audio/wav; codecs=0' });
-        audioURL = window.URL.createObjectURL(blob);
-        audio.src = audioURL;
-        console.log("recorder stopped");
-        const recording = new Audio(audioURL)
-        recording.play()
-      }
-      mediaRecorder.ondataavailable = function(e) {
-        chunks.push(e.data);
-      }
-      
-    }
-    )*/
-
 
   // This method is called inside the chatbot when it receives a message from the user.
   parse(message, audio = null) {

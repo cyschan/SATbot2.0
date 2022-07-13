@@ -16,18 +16,21 @@ class SpeechEmotionAnalyser:
     def __init__(self):
         set_cpu_only()
         #keep the order of emotions, but you can rename them to any other form of the word e.g. happiness, do not remove any
-        self.emotions_to_predict = ['Happy', 'Sad', 'Angry', 'Surprised', 'Disgust', 'Fear', 'other']
-        self.model = self.get_model(self.emotions_to_predict, model_path='/home/ccys/SATbot2.0/model/speech_emotion/multilabel7.pth', model_type='multilabel')
+        #self.emotions_to_predict = ['Happy', 'Sad', 'Angry', 'Surprised', 'Disgust', 'Fear', 'other']
+        #self.emotions_to_predict = ['Happy', 'Sad', 'Angry', 'Surprised', 'Disgust', 'Fear']
+        self.emotions_to_predict = ['angry', 'happy', 'sad', 'surprised', 'neutral', 'frustrated', 'excited', 'fearful']
+        self.model = self.get_model(self.emotions_to_predict, model_path='/home/ccys/SATbot2.0/model/speech_emotion/best_model_cpu.pth', model_type='multiclass')
         #thresholds set during validation
-        self.thresholds = [0.4, 0.25, 0.2, 0.1, 0.25, 0.1, 0.1]
+        #self.thresholds = [0.4, 0.25, 0.2, 0.1, 0.25, 0.1, 0.1]
+        self.thresholds = [0.06, 0.03,0.03,0.015,0.02,0.017]
 
     def get_emotion(self, recording, text):  
-        model, audio, token_ids, attention_mask = self.load_data(model=self.model, audiofile=recording, text=text, model_type='multilabel')
+        model, audio, token_ids, attention_mask = self.load_data(model=self.model, audiofile=recording, text=text, model_type='multiclass')
         if audio is None:
             return 'Noemo'
         else:
             prediction = self.predict(model, audio, token_ids, attention_mask)
-            pred_emotion = self.process_pred(prediction, self.emotions_to_predict, thresholds=self.thresholds, model_type='multilabel')
+            pred_emotion = self.process_pred(prediction, self.emotions_to_predict, thresholds=self.thresholds, model_type='multiclass')
             return pred_emotion # return string
     """
     Helper functions to run per utterance emotion recognition.
@@ -114,9 +117,12 @@ class SpeechEmotionAnalyser:
     """
     def process_pred(self, prediction, emotions, thresholds=[0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5], model_type='multiclass'):
         if model_type == 'multiclass':
-            emotion, _, _, _, _ = prediction
+            emotion = prediction
+            pred_emotion = emotion[0][0][1]
+            """emotion, _, _, _, _ = prediction
             _, pred_emotion, _, _ = emotion
             pred_emotion = pred_emotion[0]
+            """
         if model_type == 'multilabel':
             #find out which emotion has the largest difference between the value and its threshold
             pred_emotion = prediction - thresholds
@@ -138,9 +144,15 @@ class SpeechEmotionAnalyser:
     @return pred_emotions a numpy array consisting of the 0-1 values for the predicted emotions
     """
     def predict(self, model, audio, token_ids, attention_mask):
+        """
         model.eval()
         with torch.no_grad():
             predictions, attention, hidden_out, hx = model(audio, token_ids, attention_mask)
         pred_emotions = predictions[0]
         pred_emotions = torch.sigmoid(pred_emotions).numpy()[0]
         return pred_emotions
+        """
+        predictions = []
+        prediction = model.predict_utterance(audio, token_ids, attention_mask)
+        predictions.append(prediction)
+        return predictions
