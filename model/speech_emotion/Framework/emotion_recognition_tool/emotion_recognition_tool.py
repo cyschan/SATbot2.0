@@ -52,14 +52,13 @@ class EmotionRecognition:
 
     def load_audio(self, audio_path, start_time=None, end_time=None, mono=True):
         if start_time is None and end_time is None:
-            audio = librosa.core.load(audio_path, sr=48000, mono=mono)
+            audio = librosa.core.load(audio_path, sr=16000, mono=mono)
         else:
             length = end_time - start_time
             audio = librosa.core.load(audio_path, sr=48000, mono=mono, offset=start_time, duration=length)
             # Log these utterances for the demo
             librosa.output.write_wav('files/utterance_{}.wav'.format(self.utt_count), audio[0], 48000)
             self.utt_count += 1
-        librosa.output.write_wav('/home/ccys/SATbot2.0/model/speech_emotion/utterance48000.wav', audio[0], 48000)
         librosa.output.write_wav('/home/ccys/SATbot2.0/model/speech_emotion/utterance16000.wav', audio[0], 16000)
         #audio = librosa.resample(audio[0], orig_sr=48000, target_sr=16000).astype(np.float32)
         #resample = librosa.resample(audio[0], orig_sr=48000, target_sr=16000)

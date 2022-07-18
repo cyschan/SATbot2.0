@@ -96,8 +96,9 @@ class SpeechEmotionAnalyser:
             token_ids = torch.tensor(model.tokenizer.convert_tokens_to_ids(tokens)).unsqueeze(dim=0)
         if model_type == 'multilabel':
             tokenizer = get_tokenizer()
-            audio = librosa.core.load(audiofile, sr=48000, mono=True)
-            audio = librosa.resample(audio[0], orig_sr=48000, target_sr=16000).astype(np.float32)
+            audio = librosa.core.load(audiofile, sr=16000, mono=True)
+            
+            audio = audio[0].astype(np.float32)
             audio = torch.from_numpy(audio).float().view(-1, model.input_size).unsqueeze(dim=0)
             tokens = tokenizer.tokenize(text)
             tokens = ['[CLS]'] + tokens + ['[SEP]']
