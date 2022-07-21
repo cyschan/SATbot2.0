@@ -1,6 +1,9 @@
 import axios from 'axios';
+import { synthesiseSpeech } from './SpeechSynthesis'
+
 // ActionProvider starter code
 class ActionProvider {
+
   constructor(createChatBotMessage, setStateFunc, createClientMessage) {
     this.createChatBotMessage = createChatBotMessage;
     this.setState = setStateFunc;
@@ -16,6 +19,8 @@ class ActionProvider {
 
   // Asks for password after storing username
   askForPassword = (username) => {
+    this.voiceList = speechSynthesis.getVoices();
+    this.voice = this.voiceList[0];
     this.setState((state) => ({
       ...state,
       username: username,
@@ -76,6 +81,10 @@ class ActionProvider {
       let message = this.createChatBotMessage("The password is valid. Welcome.", {
         withAvatar: true,
       });
+
+      
+      var speech = synthesiseSpeech("Pigeons are stupid")
+
 
       // Opening prompt -> open text
       this.addMessageToBotState(message);
