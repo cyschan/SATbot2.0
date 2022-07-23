@@ -15,8 +15,8 @@ from nltk.corpus import wordnet  # noqa
 
 
 class ModelDecisionMaker:
-    def __init__(self):
-
+    def __init__(self, speech_prediction_model):
+        self.speech_model = speech_prediction_model
         self.kai = pd.read_csv('/home/ccys/SATbot2.0/model/kai.csv', encoding='ISO-8859-1') #change path
         self.robert = pd.read_csv('/home/ccys/SATbot2.0/model/robert.csv', encoding='ISO-8859-1')
         self.gabrielle = pd.read_csv('/home/ccys/SATbot2.0/model/gabrielle.csv', encoding='ISO-8859-1')
@@ -137,7 +137,7 @@ class ModelDecisionMaker:
                 "model_prompt": lambda user_id, db_session, curr_session, app: self.get_opening_prompt(user_id),
 
                 "choices": {
-                    "open_text": lambda user_id, db_session, curr_session, app: self.determine_next_prompt_opening(user_id, app, db_session)
+                    "open_text": lambda user_id, db_session, curr_session, app: self.determine_next_prompt_opening(user_id, app, db_session, speech = True)
                 },
                 "protocols": {"open_text": []},
             },
@@ -478,7 +478,7 @@ class ModelDecisionMaker:
                 "model_prompt": lambda user_id, db_session, curr_session, app: self.get_restart_prompt(user_id),
 
                 "choices": {
-                    "open_text": lambda user_id, db_session, curr_session, app: self.determine_next_prompt_opening(user_id, app, db_session)
+                    "open_text": lambda user_id, db_session, curr_session, app: self.determine_next_prompt_opening(user_id, app, db_session, speech = True)
                 },
                 "protocols": {"open_text": []},
             },
@@ -630,24 +630,37 @@ class ModelDecisionMaker:
         self.recent_protocols.append(recent_protocol)
 
 
-    def determine_next_prompt_opening(self, user_id, app, db_session):
+    def determine_next_prompt_opening(self, user_id, app, db_session, speech = False):
+
+        # If no audio, override to text-only prediction model
+        if speech == True and self.speech_model.get_last_prediction() == None:
+            speech = False
+
         user_response = self.user_choices[user_id]["choices_made"]["opening_prompt"]
-        emotion = get_emotion(user_response)
-        #emotion = np.random.choice(["Happy", "Sad", "Angry", "Anxious"]) #random choice to be replaced with emotion classifier
-        if emotion == 'fear':
-            self.guess_emotion_predictions[user_id] = 'Anxious or scared'
-            self.user_emotions[user_id] = 'Anxious'
-        elif emotion == 'sadness':
-            self.guess_emotion_predictions[user_id] = 'Sad'
-            self.user_emotions[user_id] = 'Sad'
-        elif emotion == 'anger':
-            self.guess_emotion_predictions[user_id] = 'Angry'
-            self.user_emotions[user_id] = 'Angry'
-        else:
-            self.guess_emotion_predictions[user_id] = 'Happy or content'
-            self.user_emotions[user_id] = 'Happy'
+        if speech == False:
+            emotion = get_emotion(user_response)
+            #emotion = np.random.choice(["Happy", "Sad", "Angry", "Anxious"]) #random choice to be replaced with emotion classifier
+            if emotion == 'fear':
+                self.guess_emotion_predictions[user_id] = 'Anxious or scared'
+                self.user_emotions[user_id] = 'Anxious'
+            elif emotion == 'sadness':
+                self.guess_emotion_predictions[user_id] = 'Sad'
+                self.user_emotions[user_id] = 'Sad'
+            elif emotion == 'anger':
+                self.guess_emotion_predictions[user_id] = 'Angry'
+                self.user_emotions[user_id] = 'Angry'
+            else:
+                self.guess_emotion_predictions[user_id] = 'Happy or content'
+                self.user_emotions[user_id] = 'Happy'
         #self.guess_emotion_predictions[user_id] = emotion
         #self.user_emotions[user_id] = emotion
+        else:
+            emotion = self.speech_model.get_last_prediction()
+            emotion = emotion[0][0][1][0]
+            self.user_emotions[user_id] = emotion.capitalize()
+            self.guess_emotion_predictions[user_id] = emotion.capitalize()
+            #IEMOCAP: ['angry', 'happy', 'sad', 'surprised', 'neutral', 'frustrated', 'excited', 'fearful']
+
         return "guess_emotion"
 
 
@@ -661,9 +674,10 @@ class ModelDecisionMaker:
                  maxscore = fitscore
                  chosen = row
         if chosen != '':
-            return chosen
+            result = chosen
         else:
-            return random.choice(column.dropna().sample(n=5).to_list()) #was 25
+            result =  random.choice(column.dropna().sample(n=5).to_list()) #was 25
+        return result
 
 
     def split_sentence(self, sentence):
@@ -1246,12 +1260,24 @@ class ModelDecisionMaker:
         if callable(next_choice):
             next_choice = next_choice(user_id, db_session, user_session, app)
 
-        if current_choice == "guess_emotion" and user_choice.lower() == "yes":
+        """if current_choice == "guess_emotion" and user_choice.lower() == "yes":
             if self.guess_emotion_predictions[user_id] == "Sad":
                 next_choice = next_choice["Sad"]
             elif self.guess_emotion_predictions[user_id] == "Angry":
                 next_choice = next_choice["Angry"]
             elif self.guess_emotion_predictions[user_id] == "Anxious or scared":
+                next_choice = next_choice["Anxious or scared"]
+            else:
+                next_choice = next_choice["Happy or content"]
+        """
+        #IEMOCAP version
+        #IEMOCAP: ['angry', 'happy', 'sad', 'surprised', 'neutral', 'frustrated', 'excited', 'fearful']
+        if current_choice == "guess_emotion" and user_choice.lower() == "yes":
+            if self.guess_emotion_predictions[user_id] == "Sad":
+                next_choice = next_choice["Sad"]
+            elif self.guess_emotion_predictions[user_id] == "Angry" or self.guess_emotion_predictions[user_id] == "Frustrated":
+                next_choice = next_choice["Angry"]
+            elif self.guess_emotion_predictions[user_id] == "Fearful" or self.guess_emotion_predictions[user_id] == "Surprised":
                 next_choice = next_choice["Anxious or scared"]
             else:
                 next_choice = next_choice["Happy or content"]
@@ -1279,4 +1305,4 @@ class ModelDecisionMaker:
         else:
             next_choices = list(self.QUESTIONS[next_choice]["choices"].keys())
         self.user_choices[user_id]["choices_made"]["current_choice"] = next_choice
-        return {"model_prompt": next_prompt, "choices": next_choices}
+        return {"model_prompt": next_prompt, "choices": next_choices, "persona": self.chosen_personas[user_id]}

@@ -6,6 +6,7 @@ model/T5_small_empathy.pt
 view/node_modules/
 **/*.pth
 .vscode/
+keys.txt
 # Elastic Beanstalk Files
 #.elasticbeanstalk/*
 #!.elasticbeanstalk/*.cfg.yml

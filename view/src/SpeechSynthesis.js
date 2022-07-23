@@ -1,4 +1,4 @@
-export function synthesiseSpeech(text) {
+export function synthesiseSpeech(text, persona) {
     var sdk = require("microsoft-cognitiveservices-speech-sdk");
     const speechConfig = sdk.SpeechConfig.fromSubscription("112e652f93e840e9b130d38878a28a50", "uksouth");
     // Set either the `SpeechSynthesisVoiceName` or `SpeechSynthesisLanguage`.
@@ -7,7 +7,6 @@ export function synthesiseSpeech(text) {
     switch (String(persona)){
         case "Olivia":
             speechConfig.speechSynthesisVoiceName = "en-GB-SoniaNeural";
-            speechConfig.speech
             break;
         case "Robert":
             speechConfig.speechSynthesisVoiceName = "en-GB-EthanNeural";
@@ -22,11 +21,11 @@ export function synthesiseSpeech(text) {
             return;
     }
     
+    if (Array.isArray(text)){
+        text = text.join('');
+    }
 
-    var synthesizer = new sdk.SpeechSynthesizer(speechConfig, null);
-    var ssmlXml = loadXMLDoc("./ssml.xml");
-    var ssmlText = ssmlXml.querySelector('speak>voice>mstts:express-as').textContent;
-    ssmlText.textContent = text;
+    var synthesizer = new sdk.SpeechSynthesizer(speechConfig);
     synthesizer.speakTextAsync(
         text,
         result => {

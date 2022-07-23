@@ -27,13 +27,13 @@ logging.basicConfig(
 # ~ Databases ~ #
 db = SQLAlchemy()  # <-Initialize database object
 migrate = Migrate()  # <-Initialize migration object
-
+speech_analyser = speech_util.SpeechEmotionAnalyser()
 
 
 def create_app():
     """Construct core application"""
     app = Flask(__name__)
-    speech_analyser = speech_util.SpeechEmotionAnalyser()
+    
 
     app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
@@ -195,6 +195,18 @@ def create_app():
             prediction = speech_analyser.get_emotion(audio, text)
             return prediction[0]
         return 'err'
+
+    @app.route("/api/get_persona", methods=["POST"])
+    def get_persona():
+        id = json.loads(request.data)["user_id"]
+        if (id != None):
+            return {
+            "persona": decision_maker.chosen_personas[id]
+            }
+        else:
+            return {
+            "persona": "0"
+            }
     return app
 
 
@@ -205,4 +217,4 @@ if __name__ == "__main__":
 
 from model.rule_based_model import ModelDecisionMaker  # noqa
 
-decision_maker = ModelDecisionMaker()
+decision_maker = ModelDecisionMaker(speech_analyser)

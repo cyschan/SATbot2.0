@@ -23,6 +23,7 @@ class SpeechEmotionAnalyser:
         #thresholds set during validation
         #self.thresholds = [0.4, 0.25, 0.2, 0.1, 0.25, 0.1, 0.1]
         self.thresholds = [0.06, 0.03,0.03,0.015,0.02,0.017]
+        self.last_prediction = None
 
     def get_emotion(self, recording, text):  
         model, audio, token_ids, attention_mask = self.load_data(model=self.model, audiofile=recording, text=text, model_type='multiclass')
@@ -156,4 +157,8 @@ class SpeechEmotionAnalyser:
         predictions = []
         prediction = model.predict_utterance(audio, token_ids, attention_mask)
         predictions.append(prediction)
+        self.last_prediction = predictions
         return predictions
+
+    def get_last_prediction(self):
+        return self.last_prediction

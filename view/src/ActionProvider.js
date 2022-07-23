@@ -8,6 +8,7 @@ class ActionProvider {
     this.createChatBotMessage = createChatBotMessage;
     this.setState = setStateFunc;
     this.createClientMessage = createClientMessage;
+    this.persona = null;
     /*this.speechEnabled = false;
     this.recognition = new SpeechRecognition()
     this.recognition.continuous = false
@@ -19,8 +20,6 @@ class ActionProvider {
 
   // Asks for password after storing username
   askForPassword = (username) => {
-    this.voiceList = speechSynthesis.getVoices();
-    this.voice = this.voiceList[0];
     this.setState((state) => ({
       ...state,
       username: username,
@@ -82,8 +81,6 @@ class ActionProvider {
         withAvatar: true,
       });
 
-      
-      var speech = synthesiseSpeech("Pigeons are stupid")
 
 
       // Opening prompt -> open text
@@ -92,9 +89,34 @@ class ActionProvider {
         withAvatar: true,
       });
       this.addMessageToBotState(message);
+
+      if (this.persona == null){
+      }
+      if (this.persona != null){
+        synthesiseSpeech(response.data.chatbot_response, this.persona);
+      }
+      
     }
 
   };
+
+  getPersona = async (user_id) => {
+    const uri = `http://localhost:5000/api/get_persona`;
+    const response = await axios.post(uri, {
+      user_id
+    })
+
+    if (this.setState.persona != null){
+      return this.setState.persona
+    }
+
+    if (response.data["persona"] !== "0"){
+      this.persona = response.data["persona"];
+      return this.persona;
+    } else {
+      return null;
+    }
+  }
 
   // Send API request
   sendRequest = async (choice_info) => {
@@ -102,12 +124,19 @@ class ActionProvider {
     // const uri = `/api/update_session`
 
     // URL to use for local requests
+    if (choice_info["user_choice"] === "Olivia" || choice_info["user_choice"] === "Robert" || choice_info["user_choice"] === "Kai" || choice_info["user_choice"] === "Gabrielle" || choice_info["user_choice"] === "Arman"){
+      this.persona = choice_info["user_choice"];
+    }
+
     const uri = `http://localhost:5000/api/update_session`;
     const response = await axios.post(uri, {
       choice_info
     })
-
     this.handleReceivedData(response.data);
+
+    if (this.persona != null){
+      synthesiseSpeech(response.data.chatbot_response, this.persona);
+    }
   };
 
   uploadSpeech = async (audio, transcript) => {
@@ -175,6 +204,7 @@ class ActionProvider {
         widget: optionsToShow,
       });
       this.addMessageToBotState(messages);
+
     } else {
       for (let i = 0; i < dataReceived.chatbot_response.length; i++) {
         let widget = null;

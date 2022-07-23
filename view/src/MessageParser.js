@@ -8,6 +8,7 @@ class MessageParser {
     let chunks = [];
     this.actionProvider = actionProvider;
     this.state = state;
+    this.persona = null;
     this.recognition = new SpeechRecognition()
     this.recognition.continuous = false
     this.recognition.interimResults = false
@@ -72,14 +73,19 @@ class MessageParser {
       setTimeout(() => {
         this.recognition.start()
       }, 500)
+
+      if (this.persona == null){
+        this.persona = this.actionProvider.getPersona(this.state.userState);
+      }
+
       const choice_info = {
         user_id: this.state.userState,
         session_id: this.state.sessionID,
         user_choice: message,
         input_type: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+        persona: this.persona,
       };
       this.actionProvider.stopAskingForProtocol()
-
       return this.actionProvider.sendRequest(choice_info);
     } else if (this.state.askingForProtocol && (parseInt(message) < 1 || parseInt(message) > 20)) {
       console.log(message)
@@ -125,8 +131,8 @@ class MessageParser {
           session_id: this.state.sessionID,
           user_choice: message,
           input_type: input_type,
+          persona: this.persona,
         };
-
 
 
         return this.actionProvider.sendRequest(choice_info);

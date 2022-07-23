@@ -5,3 +5,4 @@ ffmpeg (apt-get)
 librosa==0.7.2
 numba==0.48
 SpeechRecognition
+npm msft speech service

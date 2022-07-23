@@ -25,6 +25,7 @@ const config = {
     username: null,
     password: null,
     sessionID: null,
+    persona: null,
     protocols: [],
     askingForProtocol: false
   },
