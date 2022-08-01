@@ -137,7 +137,7 @@ class ModelDecisionMaker:
                 "model_prompt": lambda user_id, db_session, curr_session, app: self.get_opening_prompt(user_id),
 
                 "choices": {
-                    "open_text": lambda user_id, db_session, curr_session, app: self.determine_next_prompt_opening(user_id, app, db_session, speech = True)
+                    "open_text": lambda user_id, db_session, curr_session, app: self.determine_next_prompt_opening(user_id, app, db_session, speech = self.speech_model.model_type)
                 },
                 "protocols": {"open_text": []},
             },
@@ -478,7 +478,7 @@ class ModelDecisionMaker:
                 "model_prompt": lambda user_id, db_session, curr_session, app: self.get_restart_prompt(user_id),
 
                 "choices": {
-                    "open_text": lambda user_id, db_session, curr_session, app: self.determine_next_prompt_opening(user_id, app, db_session, speech = True)
+                    "open_text": lambda user_id, db_session, curr_session, app: self.determine_next_prompt_opening(user_id, app, db_session, speech = self.speech_model.model_type)
                 },
                 "protocols": {"open_text": []},
             },
@@ -630,14 +630,13 @@ class ModelDecisionMaker:
         self.recent_protocols.append(recent_protocol)
 
 
-    def determine_next_prompt_opening(self, user_id, app, db_session, speech = False):
-
+    def determine_next_prompt_opening(self, user_id, app, db_session, speech = None):
         # If no audio, override to text-only prediction model
-        if speech == True and self.speech_model.get_last_prediction() == None:
-            speech = False
+        if speech != None and self.speech_model.get_last_prediction() == None:
+            speech = None
 
         user_response = self.user_choices[user_id]["choices_made"]["opening_prompt"]
-        if speech == False:
+        if speech == None:
             emotion = get_emotion(user_response)
             #emotion = np.random.choice(["Happy", "Sad", "Angry", "Anxious"]) #random choice to be replaced with emotion classifier
             if emotion == 'fear':
@@ -654,13 +653,18 @@ class ModelDecisionMaker:
                 self.user_emotions[user_id] = 'Happy'
         #self.guess_emotion_predictions[user_id] = emotion
         #self.user_emotions[user_id] = emotion
-        else:
+        if speech == "multiclass":
+            #IEMOCAP: ['angry', 'happy', 'sad', 'surprised', 'neutral', 'frustrated', 'excited', 'fearful']
             emotion = self.speech_model.get_last_prediction()
             emotion = emotion[0][0][1][0]
             self.user_emotions[user_id] = emotion.capitalize()
             self.guess_emotion_predictions[user_id] = emotion.capitalize()
-            #IEMOCAP: ['angry', 'happy', 'sad', 'surprised', 'neutral', 'frustrated', 'excited', 'fearful']
-
+            
+        if speech == "multilabel":
+            #CMU-MOSEI: ['Happy', 'Sad', 'Angry', 'Surprised', 'Disgust', 'Fear']
+            emotion = self.speech_model.get_last_prediction()
+            self.user_emotions[user_id] = emotion.capitalize()
+            self.guess_emotion_predictions[user_id] = emotion.capitalize()
         return "guess_emotion"
 
 
@@ -1275,9 +1279,9 @@ class ModelDecisionMaker:
         if current_choice == "guess_emotion" and user_choice.lower() == "yes":
             if self.guess_emotion_predictions[user_id] == "Sad":
                 next_choice = next_choice["Sad"]
-            elif self.guess_emotion_predictions[user_id] == "Angry" or self.guess_emotion_predictions[user_id] == "Frustrated":
+            elif self.guess_emotion_predictions[user_id] == "Angry" or self.guess_emotion_predictions[user_id] == "Frustrated" or self.guess_emotion_predictions[user_id] == "Disgust":
                 next_choice = next_choice["Angry"]
-            elif self.guess_emotion_predictions[user_id] == "Fearful" or self.guess_emotion_predictions[user_id] == "Surprised":
+            elif self.guess_emotion_predictions[user_id] == "Fear" or self.guess_emotion_predictions[user_id] == "Fearful" or self.guess_emotion_predictions[user_id] == "Surprised":
                 next_choice = next_choice["Anxious or scared"]
             else:
                 next_choice = next_choice["Happy or content"]

@@ -193,7 +193,7 @@ def create_app():
             text = request.form['text']
             audio = AudioSegment.from_file(path + f_name, "webm").export(path + f_name + ".wav", format="wav")
             prediction = speech_analyser.get_emotion(audio, text)
-            return prediction[0]
+            return prediction
         return 'err'
 
     @app.route("/api/get_persona", methods=["POST"])

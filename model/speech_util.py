@@ -18,20 +18,27 @@ class SpeechEmotionAnalyser:
         #keep the order of emotions, but you can rename them to any other form of the word e.g. happiness, do not remove any
         #self.emotions_to_predict = ['Happy', 'Sad', 'Angry', 'Surprised', 'Disgust', 'Fear', 'other']
         #self.emotions_to_predict = ['Happy', 'Sad', 'Angry', 'Surprised', 'Disgust', 'Fear']
-        self.emotions_to_predict = ['angry', 'happy', 'sad', 'surprised', 'neutral', 'frustrated', 'excited', 'fearful']
-        self.model = self.get_model(self.emotions_to_predict, model_path='/home/ccys/SATbot2.0/model/speech_emotion/best_model_cpu.pth', model_type='multiclass')
+        self.model_type = 'multilabel'
+        if self.model_type == 'multiclass':
+            self.emotions_to_predict = ['angry', 'happy', 'sad', 'surprised', 'neutral', 'frustrated', 'excited', 'fearful']
+        elif self.model_type == 'multilabel':
+            self.emotions_to_predict = ['Happy', 'Sad', 'Angry', 'Surprised', 'Disgust', 'Fear']
+        self.model = self.get_model(self.emotions_to_predict, model_path='/home/ccys/SATbot2.0/model/speech_emotion/softW.pth', model_type=self.model_type)
         #thresholds set during validation
         #self.thresholds = [0.4, 0.25, 0.2, 0.1, 0.25, 0.1, 0.1]
         self.thresholds = [0.06, 0.03,0.03,0.015,0.02,0.017]
         self.last_prediction = None
 
     def get_emotion(self, recording, text):  
-        model, audio, token_ids, attention_mask = self.load_data(model=self.model, audiofile=recording, text=text, model_type='multiclass')
+        model, audio, token_ids, attention_mask = self.load_data(model=self.model, audiofile=recording, text=text, model_type=self.model_type)
         if audio is None:
             return 'Noemo'
         else:
-            prediction = self.predict(model, audio, token_ids, attention_mask)
-            pred_emotion = self.process_pred(prediction, self.emotions_to_predict, thresholds=self.thresholds, model_type='multiclass')
+            prediction = self.predict(model, audio, token_ids, attention_mask, model_type=self.model_type)
+            pred_emotion = self.process_pred(prediction, self.emotions_to_predict, thresholds=self.thresholds, model_type=self.model_type)
+        if self.model_type == 'multiclass':
+            return pred_emotion[0]
+        elif self.model_type == 'multilabel':
             return pred_emotion # return string
     """
     Helper functions to run per utterance emotion recognition.
@@ -135,6 +142,7 @@ class SpeechEmotionAnalyser:
                 pred_emotion = 'Noemo'
             else:
                 pred_emotion = emotions[index]
+            self.last_prediction = pred_emotion
         return pred_emotion
 
     """
@@ -145,20 +153,21 @@ class SpeechEmotionAnalyser:
     @param attention_mask
     @return pred_emotions a numpy array consisting of the 0-1 values for the predicted emotions
     """
-    def predict(self, model, audio, token_ids, attention_mask):
-        """
-        model.eval()
-        with torch.no_grad():
-            predictions, attention, hidden_out, hx = model(audio, token_ids, attention_mask)
-        pred_emotions = predictions[0]
-        pred_emotions = torch.sigmoid(pred_emotions).numpy()[0]
-        return pred_emotions
-        """
-        predictions = []
-        prediction = model.predict_utterance(audio, token_ids, attention_mask)
-        predictions.append(prediction)
-        self.last_prediction = predictions
-        return predictions
+    def predict(self, model, audio, token_ids, attention_mask, model_type='multiclass'):
+        if model_type == 'multiclass':
+            predictions = []
+            prediction = model.predict_utterance(audio, token_ids, attention_mask)
+            predictions.append(prediction)
+            self.last_prediction = predictions
+            return predictions
+        if model_type == 'multilabel':
+            model.eval()
+            with torch.no_grad():
+                predictions, attention, hidden_out, hx = model(audio, token_ids, attention_mask)
+            pred_emotions = predictions[0]
+            pred_emotions = torch.sigmoid(pred_emotions).numpy()[0]
+            return pred_emotions
+        return 'err'
 
     def get_last_prediction(self):
         return self.last_prediction

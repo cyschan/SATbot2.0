@@ -1,10 +1,19 @@
+/*
+require("@babel/core").transformSync("code", {
+  plugins: ["@babel/core"],
+});
+*/
+require('./stt.js');
+//import SpeechRecogniser from './stt copy.js'
 // MessageParser starter code
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
 class MessageParser {
   constructor(actionProvider, state) {
     let mp = this;
     var audio = null, blob = null;
     this.mediaRecorder = null;
+    //this.stt = new SpeechRecogniser();
     let chunks = [];
     this.actionProvider = actionProvider;
     this.state = state;
@@ -99,6 +108,8 @@ class MessageParser {
       message = this.capitaliseFirstLetter(message)
       if (audio != null){
         console.log(this.actionProvider.uploadSpeech(audio, message))
+        transcribe(audio)
+        //console.log(sttResult);
         this.actionProvider.addSpokenMessage(message)
       }
       console.log(message)
