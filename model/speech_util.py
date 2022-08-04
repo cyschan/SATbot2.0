@@ -171,3 +171,6 @@ class SpeechEmotionAnalyser:
 
     def get_last_prediction(self):
         return self.last_prediction
+
+    def get_model_type(self):
+        return self.model_type

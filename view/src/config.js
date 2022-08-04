@@ -42,37 +42,37 @@ const config = {
     {
       widgetName: "YesNo",
       widgetFunc: (props) => <YesNoOptions {...props} />,
-      mapStateToProps: ["userState", "sessionID"],
+      mapStateToProps: ["userState", "sessionID", "personality"],
     },
     {
       widgetName: "Continue",
       widgetFunc: (props) => <ContinueOptions {...props} />,
-      mapStateToProps: ["userState", "sessionID"],
+      mapStateToProps: ["userState", "sessionID", "personality"],
     },
     {
       widgetName: "Emotion",
       widgetFunc: (props) => <EmotionOptions {...props} />,
-      mapStateToProps: ["userState", "sessionID"],
+      mapStateToProps: ["userState", "sessionID", "personality"],
     },
     {
       widgetName: "Feedback",
       widgetFunc: (props) => <FeedbackOptions {...props} />,
-      mapStateToProps: ["userState", "sessionID"],
+      mapStateToProps: ["userState", "sessionID", "personality"],
     },
     {
       widgetName: "Protocol",
       widgetFunc: (props) => <ProtocolOptions {...props} />,
-      mapStateToProps: ["userState", "sessionID", "protocols", "askingForProtocol"],
+      mapStateToProps: ["userState", "sessionID", "protocols", "askingForProtocol", "personality"],
     },
     {
       widgetName: "YesNoProtocols",
       widgetFunc: (props) => <YesNoProtocolOptions {...props} />,
-      mapStateToProps: ["userState", "sessionID"],
+      mapStateToProps: ["userState", "sessionID", "personality"],
     },
     {
       widgetName: "RecentDistant",
       widgetFunc: (props) => <EventOptions {...props} />,
-      mapStateToProps: ["userState", "sessionID"],
+      mapStateToProps: ["userState", "sessionID", "personality"],
     },
   ],
 };

@@ -17,35 +17,34 @@ from nltk.corpus import wordnet  # noqa
 class ModelDecisionMaker:
     def __init__(self, speech_prediction_model):
         self.speech_model = speech_prediction_model
+        self.model_type = self.speech_model.get_model_type()
         self.kai = pd.read_csv('/home/ccys/SATbot2.0/model/kai.csv', encoding='ISO-8859-1') #change path
         self.robert = pd.read_csv('/home/ccys/SATbot2.0/model/robert.csv', encoding='ISO-8859-1')
         self.gabrielle = pd.read_csv('/home/ccys/SATbot2.0/model/gabrielle.csv', encoding='ISO-8859-1')
         self.arman = pd.read_csv('/home/ccys/SATbot2.0/model/arman.csv', encoding='ISO-8859-1')
         self.olivia = pd.read_csv('/home/ccys/SATbot2.0/model/olivia.csv', encoding='ISO-8859-1')
-
-        # Titles from workshops (Title 7 adapted to give more information)
         self.PROTOCOL_TITLES = [
             "0: None",
-            "1: Connecting with the Child [Week 1]",
-            "2: Laughing at our Two Childhood Pictures [Week 1]",
-            "3: Falling in Love with the Child [Week 2]",
-            "4: Vow to Adopt the Child as Your Own Child [Week 2]",
-            "5: Maintaining a Loving Relationship with the Child [Week 3]",
+            "1: Recalling significant early memories [Week 1]",
+            "2: Becoming intimate with your Child [Week 1]",
+            "3: Singing a song of affection [Week 2]",
+            "4: Expressing love and care for the Child [Week 2]",
+            "5: Pledging to care and support our Child [Week 3]",
             "6: An exercise to Process the Painful Childhood Events [Week 3]",
             "7: Protocols for Creating Zest for Life [Week 4]",
             "8: Loosening Facial and Body Muscles [Week 4]",
-            "9: Protocols for Attachment and Love of Nature  [Week 4]",
-            "10: Laughing at, and with One's Self [Week 5]",
-            "11: Processing Current Negative Emotions [Week 5]",
-            "12: Continuous Laughter [Week 6]",
-            "13: Changing Our Perspective for Getting Over Negative Emotions [Week 6]",  # noqa
-            "14: Protocols for Socializing the Child [Week 6]",
-            "15: Recognising and Controlling Narcissism and the Internal Persecutor [Week 7]",  # noqa
-            "16: Creating an Optimal Inner Model [Week 7]",
-            "17: Solving Personal Crises [Week 7]",
-            "18: Laughing at the Harmless Contradiction of Deep-Rooted Beliefs/Laughing at Trauma [Week 8]",  # noqa
-            "19: Changing Ideological Frameworks for Creativity [Week 8]",
-            "20: Affirmations [Week 8]",
+            "9: Overcoming your current negative emotions  [Week 4]",
+            "10: Overcoming past pain [Week 5]",
+            "11: Muscle relaxation and playful face [Week 5]",
+            "12: Laughing on your own [Week 6]",
+            "13: Laughing with your childhood self [Week 6]",
+            "14: Creating your own brand of laughter [Week 6]",
+            "15: Learning to change your perspective [Week 6]",
+            "16: Learning to be playful about your past pains [Week 6]",
+            "17: Identifying our personal resentments and acting them out [Week 7]",
+            "18: Planning more constructive actions [Week 8]",
+            "19: Updating our beliefs to enhance creativity [Week 8]",
+            "20: Practicing affirmations [Week 8]",
         ]
 
         self.TITLE_TO_PROTOCOL = {
@@ -67,7 +66,7 @@ class ModelDecisionMaker:
         self.INTERNAL_PERSECUTOR_PROTOCOLS = [
             self.PROTOCOL_TITLES[15],
             self.PROTOCOL_TITLES[16],
-            self.PROTOCOL_TITLES[8],
+            self.PROTOCOL_TITLES[11],
             self.PROTOCOL_TITLES[19],
         ]
 
@@ -101,7 +100,6 @@ class ModelDecisionMaker:
 
         self.chosen_personas = {}
         self.datasets = {}
-
 
         self.QUESTIONS = {
 
@@ -148,39 +146,65 @@ class ModelDecisionMaker:
                 ),
                 "choices": {
                     "yes": {
+                        "sad": "after_classification_negative",
                         "Sad": "after_classification_negative",
+                        "angry": "after_classification_negative",
                         "Angry": "after_classification_negative",
+                        "disgust": "after_classification_negative",
+                        "Disgust": "after_classification_negative",
+                        "fear": "after_classification_negative",
+                        "Fear": "after_classification_negative",
+                        "fearful": "after_classification_negative",
+                        "Fearful": "after_classification_negative",
+                        "disgust": "after_classification_negative",
+                        "Disgust": "after_classification_negative",
+                        "surprised": "after_classification_negative",
+                        "Surprised": "after_classification_negative",
                         "Anxious or scared": "after_classification_negative",
                         "Happy or content": "after_classification_positive",
+                        "happy": "after_classification_positive",
+                        "Happy": "after_classification_positive",
+                        "excited": "after_classification_positive",
+                        "Excited": "after_classification_positive",
+                        "happy": "after_classification_positive",
+                        "Happy": "after_classification_positive",
+                        "neutral": "after_classification_positive",
+                        "Neutral": "after_classification_positive",
                     },
                     "no": "check_emotion",
                 },
                 "protocols": {
                     "yes": [],
                     "no": []
-                    },
+                },
             },
-
 
             "check_emotion": {
                 "model_prompt": lambda user_id, db_session, curr_session, app: self.get_model_prompt_check_emotion(user_id, app, db_session),
-
                 "choices": {
-                    "Sad": lambda user_id, db_session, curr_session, app: self.get_sad_emotion(user_id),
-                    "Angry": lambda user_id, db_session, curr_session, app: self.get_angry_emotion(user_id),
-                    "Anxious or scared": lambda user_id, db_session, curr_session, app: self.get_anxious_emotion(user_id),
-                    "Happy or content": lambda user_id, db_session, curr_session, app: self.get_happy_emotion(user_id),
+                    "Angry": lambda user_id, db_session, curr_session, app: self.get_emotion(user_id, "Angry"),
+                    "Happy": lambda user_id, db_session, curr_session, app: self.get_emotion(user_id, "Happy"),
+                    "Sad": lambda user_id, db_session, curr_session, app: self.get_emotion(user_id, "Sad"),
+                    "Surprised": lambda user_id, db_session, curr_session, app: self.get_emotion(user_id, "Surprised"),
+                    "Neutral": lambda user_id, db_session, curr_session, app: self.get_emotion(user_id, "Neutral"),
+                    "Frustrated": lambda user_id, db_session, curr_session, app: self.get_emotion(user_id, "Frustrated"),
+                    "Fearful": lambda user_id, db_session, curr_session, app: self.get_emotion(user_id, "Fearful"),
+                    "Excited": lambda user_id, db_session, curr_session, app: self.get_emotion(user_id, "Excited"),
                 },
+                
                 "protocols": {
-                    "Sad": [],
                     "Angry": [],
-                    "Anxious or scared" : [],
-                    "Happy or content": []
+                    "Happy": [],
+                    "Sad" : [],
+                    "Surprised": [],
+                    "Neutral": [],
+                    "Frustrated": [],
+                    "Fearful": [],
+                    "Excited": [],
                 },
             },
 
             ############# NEGATIVE EMOTIONS (SADNESS, ANGER, FEAR/ANXIETY)
-
 
             "after_classification_negative": {
                 "model_prompt": lambda user_id, db_session, curr_session, app: self.get_model_prompt_specific_event(user_id, app, db_session),
@@ -217,7 +241,7 @@ class ModelDecisionMaker:
                 },
                 "protocols": {
                     "yes": [self.PROTOCOL_TITLES[7], self.PROTOCOL_TITLES[8]],
-                    "no": [self.PROTOCOL_TITLES[11]],
+                    "no": [self.PROTOCOL_TITLES[9]],
                 },
             },
 
@@ -229,8 +253,8 @@ class ModelDecisionMaker:
                     "no": "more_questions",
                 },
                 "protocols": {
-                    "yes": [self.PROTOCOL_TITLES[13], self.PROTOCOL_TITLES[17]],
-                    "no": [self.PROTOCOL_TITLES[6]]
+                    "yes": [self.PROTOCOL_TITLES[13], self.PROTOCOL_TITLES[15], self.PROTOCOL_TITLES[16]],
+                    "no": [self.PROTOCOL_TITLES[14]]
                 },
             },
 
@@ -255,7 +279,7 @@ class ModelDecisionMaker:
                     "no": lambda user_id, db_session, curr_session, app: self.get_next_question(user_id),
                 },
                 "protocols": {
-                    "yes": [self.PROTOCOL_TITLES[13], self.PROTOCOL_TITLES[14]],
+                    "yes": [self.PROTOCOL_TITLES[13], self.PROTOCOL_TITLES[17], self.PROTOCOL_TITLES[18]],
                     "no": [self.PROTOCOL_TITLES[13]],
                 },
             },
@@ -334,7 +358,7 @@ class ModelDecisionMaker:
                     "no": lambda user_id, db_session, curr_session, app: self.get_next_question(user_id),
                 },
                 "protocols": {
-                    "yes": [self.PROTOCOL_TITLES[13], self.PROTOCOL_TITLES[17]],
+                    "yes": [self.PROTOCOL_TITLES[13], self.PROTOCOL_TITLES[15], self.PROTOCOL_TITLES[16]],
                     "no": [self.PROTOCOL_TITLES[13]],
                 },
             },
@@ -349,7 +373,7 @@ class ModelDecisionMaker:
                     "No thank you": "ending_prompt"
                 },
                 "protocols": {
-                    "Ok": [self.PROTOCOL_TITLES[9], self.PROTOCOL_TITLES[10], self.PROTOCOL_TITLES[11]], #change here?
+                    "Ok": [self.PROTOCOL_TITLES[8], self.PROTOCOL_TITLES[6], self.PROTOCOL_TITLES[9]], #change here?
                     #[self.PROTOCOL_TITLES[k] for k in self.positive_protocols],
                     "No thank you": []
                 },
@@ -722,6 +746,7 @@ class ModelDecisionMaker:
             self.recent_questions[user_id].append(my_string)
         return self.split_sentence(my_string)
 
+    """
     def get_sad_emotion(self, user_id):
         self.guess_emotion_predictions[user_id] = "Sad"
         self.user_emotions[user_id] = "Sad"
@@ -738,6 +763,43 @@ class ModelDecisionMaker:
         self.guess_emotion_predictions[user_id] = "Happy or content"
         self.user_emotions[user_id] = "Happy"
         return "after_classification_positive"
+    """
+
+    # Map IEMOCAP or CMU-MOSEI emotions into twitter emotions
+    def map_emotion(self, emotion):
+        if emotion == "Sad":
+            return "Sad"
+        elif emotion == "Angry" or emotion == "Frustrated" or emotion == "Disgust":
+            return "Angry"
+        elif emotion == "Fear" or emotion == "Fearful" or emotion == "Surprised":
+            return "Anxious"
+        else:
+            return "Happy"
+
+    def get_emotion(self, user_id, emotion):
+        self.guess_emotion_predictions[user_id] = emotion
+        self.user_emotions[user_id] = emotion
+        if emotion.lower() not in ('happy', 'happy or content', 'excited'):
+            return "after_classification_positive"
+        else:
+            return "after_classification_negative"
+
+    def get_model_prompt_pre(self, user_id):
+        prev_qs = pd.DataFrame(self.recent_questions[user_id],columns=['sentences'])
+        data = self.datasets[user_id]
+        mapped_emotion = self.map_emotion(self.user_emotions[user_id])
+        return prev_qs, data, mapped_emotion
+    
+    def get_model_prompt_post(self, data, user_id, prev_qs, base_prompt):
+        column = data[base_prompt].dropna()
+        question = self.get_best_sentence(column, prev_qs)
+        if len(self.recent_questions[user_id]) < 50:
+            self.recent_questions[user_id].append(question)
+        else:
+            self.recent_questions[user_id] = []
+            self.recent_questions[user_id].append(question)
+        return self.split_sentence(question)
+
 
     def get_model_prompt_project_emotion(self, user_id, app, db_session):
         time.sleep(7)
@@ -755,244 +817,102 @@ class ModelDecisionMaker:
 
 
     def get_model_prompt_saviour(self, user_id, app, db_session):
-        prev_qs = pd.DataFrame(self.recent_questions[user_id],columns=['sentences'])
-        data = self.datasets[user_id]
-        base_prompt = self.user_emotions[user_id] + " - Do you believe that you should be the saviour of someone else?"
-        column = data[base_prompt].dropna()
-        question = self.get_best_sentence(column, prev_qs)
-        if len(self.recent_questions[user_id]) < 50:
-            self.recent_questions[user_id].append(question)
-        else:
-            self.recent_questions[user_id] = []
-            self.recent_questions[user_id].append(question)
-        return self.split_sentence(question)
+        prev_qs, data, mapped_emotion = self.get_model_prompt_pre(user_id)
+        base_prompt = mapped_emotion + " - Do you believe that you should be the saviour of someone else?"
+        return self.get_model_prompt_post(data, user_id, prev_qs, base_prompt)
 
     def get_model_prompt_victim(self, user_id, app, db_session):
-        prev_qs = pd.DataFrame(self.recent_questions[user_id],columns=['sentences'])
-        data = self.datasets[user_id]
-        base_prompt = self.user_emotions[user_id] + " - Do you see yourself as the victim, blaming someone else for how negative you feel?"
-        column = data[base_prompt].dropna()
-        question = self.get_best_sentence(column, prev_qs)
-        if len(self.recent_questions[user_id]) < 50:
-            self.recent_questions[user_id].append(question)
-        else:
-            self.recent_questions[user_id] = []
-            self.recent_questions[user_id].append(question)
-        return self.split_sentence(question)
+        prev_qs, data, mapped_emotion = self.get_model_prompt_pre(user_id)
+        base_prompt = mapped_emotion + " - Do you see yourself as the victim, blaming someone else for how negative you feel?"
+        return self.get_model_prompt_post(data, user_id, prev_qs, base_prompt)
 
     def get_model_prompt_controlling(self, user_id, app, db_session):
-        prev_qs = pd.DataFrame(self.recent_questions[user_id],columns=['sentences'])
-        data = self.datasets[user_id]
-        base_prompt = self.user_emotions[user_id] + " - Do you feel that you are trying to control someone?"
-        column = data[base_prompt].dropna()
-        question = self.get_best_sentence(column, prev_qs)
-        if len(self.recent_questions[user_id]) < 50:
-            self.recent_questions[user_id].append(question)
-        else:
-            self.recent_questions[user_id] = []
-            self.recent_questions[user_id].append(question)
-        return self.split_sentence(question)
+        prev_qs, data, mapped_emotion = self.get_model_prompt_pre(user_id)
+        base_prompt = mapped_emotion + " - Do you feel that you are trying to control someone?"
+        return self.get_model_prompt_post(data, user_id, prev_qs, base_prompt)
 
     def get_model_prompt_accusing(self, user_id, app, db_session):
-        prev_qs = pd.DataFrame(self.recent_questions[user_id],columns=['sentences'])
-        data = self.datasets[user_id]
-        base_prompt = self.user_emotions[user_id] + " - Are you always blaming and accusing yourself for when something goes wrong?"
-        column = data[base_prompt].dropna()
-        question = self.get_best_sentence(column, prev_qs)
-        if len(self.recent_questions[user_id]) < 50:
-            self.recent_questions[user_id].append(question)
-        else:
-            self.recent_questions[user_id] = []
-            self.recent_questions[user_id].append(question)
-        return self.split_sentence(question)
+        prev_qs, data, mapped_emotion = self.get_model_prompt_pre(user_id)
+        base_prompt = mapped_emotion + " - Are you always blaming and accusing yourself for when something goes wrong?"
+        return self.get_model_prompt_post(data, user_id, prev_qs, base_prompt)
 
     def get_model_prompt_specific_event(self, user_id, app, db_session):
-        prev_qs = pd.DataFrame(self.recent_questions[user_id],columns=['sentences'])
-        data = self.datasets[user_id]
-        base_prompt = self.user_emotions[user_id] + " - Was this caused by a specific event/s?"
-        column = data[base_prompt].dropna()
-        question = self.get_best_sentence(column, prev_qs)
-        if len(self.recent_questions[user_id]) < 50:
-            self.recent_questions[user_id].append(question)
-        else:
-            self.recent_questions[user_id] = []
-            self.recent_questions[user_id].append(question)
-        return self.split_sentence(question)
+        prev_qs, data, mapped_emotion = self.get_model_prompt_pre(user_id)
+        base_prompt = mapped_emotion + " - Was this caused by a specific event/s?"
+        return self.get_model_prompt_post(data, user_id, prev_qs, base_prompt)
 
     def get_model_prompt_event_is_recent(self, user_id, app, db_session):
-        prev_qs = pd.DataFrame(self.recent_questions[user_id],columns=['sentences'])
-        data = self.datasets[user_id]
-        base_prompt = self.user_emotions[user_id] + " - Was this caused by a recent or distant event (or events)?"
-        column = data[base_prompt].dropna()
-        question = self.get_best_sentence(column, prev_qs)
-        if len(self.recent_questions[user_id]) < 50:
-            self.recent_questions[user_id].append(question)
-        else:
-            self.recent_questions[user_id] = []
-            self.recent_questions[user_id].append(question)
-        return self.split_sentence(question)
+        prev_qs, data, mapped_emotion = self.get_model_prompt_pre(user_id)
+        base_prompt = mapped_emotion + " - Was this caused by a recent or distant event (or events)?"
+        return self.get_model_prompt_post(data, user_id, prev_qs, base_prompt)
 
     def get_model_prompt_revisit_recent(self, user_id, app, db_session):
-        prev_qs = pd.DataFrame(self.recent_questions[user_id],columns=['sentences'])
-        data = self.datasets[user_id]
-        base_prompt = self.user_emotions[user_id] + " - Have you recently attempted protocol 11 and found this reignited unmanageable emotions as a result of old events?"
-        column = data[base_prompt].dropna()
-        question = self.get_best_sentence(column, prev_qs)
-        if len(self.recent_questions[user_id]) < 50:
-            self.recent_questions[user_id].append(question)
-        else:
-            self.recent_questions[user_id] = []
-            self.recent_questions[user_id].append(question)
-        return self.split_sentence(question)
+        prev_qs, data, mapped_emotion = self.get_model_prompt_pre(user_id)
+        base_prompt = mapped_emotion + " - Have you recently attempted protocol 11 and found this reignited unmanageable emotions as a result of old events?"
+        return self.get_model_prompt_post(data, user_id, prev_qs, base_prompt)
 
     def get_model_prompt_revisit_distant(self, user_id, app, db_session):
-        prev_qs = pd.DataFrame(self.recent_questions[user_id],columns=['sentences'])
-        data = self.datasets[user_id]
-        base_prompt = self.user_emotions[user_id] + " - Have you recently attempted protocol 6 and found this reignited unmanageable emotions as a result of old events?"
-        column = data[base_prompt].dropna()
-        question = self.get_best_sentence(column, prev_qs)
-        if len(self.recent_questions[user_id]) < 50:
-            self.recent_questions[user_id].append(question)
-        else:
-            self.recent_questions[user_id] = []
-            self.recent_questions[user_id].append(question)
-        return self.split_sentence(question)
+        prev_qs, data, mapped_emotion = self.get_model_prompt_pre(user_id)
+        base_prompt = mapped_emotion + " - Have you recently attempted protocol 6 and found this reignited unmanageable emotions as a result of old events?"
+        return self.get_model_prompt_post(data, user_id, prev_qs, base_prompt)
 
     def get_model_prompt_more_questions(self, user_id, app, db_session):
-        prev_qs = pd.DataFrame(self.recent_questions[user_id],columns=['sentences'])
-        data = self.datasets[user_id]
-        base_prompt = self.user_emotions[user_id] + " - Thank you. Now I will ask some questions to understand your situation."
-        column = data[base_prompt].dropna()
-        question = self.get_best_sentence(column, prev_qs)
-        if len(self.recent_questions[user_id]) < 50:
-            self.recent_questions[user_id].append(question)
-        else:
-            self.recent_questions[user_id] = []
-            self.recent_questions[user_id].append(question)
-        return self.split_sentence(question)
+        prev_qs, data, mapped_emotion = self.get_model_prompt_pre(user_id)
+        base_prompt = mapped_emotion + " - Thank you. Now I will ask some questions to understand your situation."
+        return self.get_model_prompt_post(data, user_id, prev_qs, base_prompt)
 
     def get_model_prompt_antisocial(self, user_id, app, db_session):
-        prev_qs = pd.DataFrame(self.recent_questions[user_id],columns=['sentences'])
-        data = self.datasets[user_id]
-        base_prompt = self.user_emotions[user_id] + " - Have you strongly felt or expressed any of the following emotions towards someone:"
-        column = data[base_prompt].dropna()
-        question = self.get_best_sentence(column, prev_qs)
-        if len(self.recent_questions[user_id]) < 50:
-            self.recent_questions[user_id].append(question)
-        else:
-            self.recent_questions[user_id] = []
-            self.recent_questions[user_id].append(question)
-        return [self.split_sentence(question), "Envy, jealousy, greed, hatred, mistrust, malevolence, or revengefulness?"]
+        prev_qs, data, mapped_emotion = self.get_model_prompt_pre(user_id)
+        base_prompt = mapped_emotion + " - Have you strongly felt or expressed any of the following emotions towards someone:"
+        split_sentence = self.get_model_prompt_post(data, user_id, prev_qs, base_prompt)
+        return [split_sentence, "Envy, jealousy, greed, hatred, mistrust, malevolence, or revengefulness?"]
 
     def get_model_prompt_rigid_thought(self, user_id, app, db_session):
-        prev_qs = pd.DataFrame(self.recent_questions[user_id],columns=['sentences'])
-        data = self.datasets[user_id]
-        base_prompt = self.user_emotions[user_id] + " - In previous conversations, have you considered other viewpoints presented?"
-        column = data[base_prompt].dropna()
-        question = self.get_best_sentence(column, prev_qs)
-        if len(self.recent_questions[user_id]) < 50:
-            self.recent_questions[user_id].append(question)
-        else:
-            self.recent_questions[user_id] = []
-            self.recent_questions[user_id].append(question)
-        return self.split_sentence(question)
+        prev_qs, data, mapped_emotion = self.get_model_prompt_pre(user_id)
+        base_prompt = mapped_emotion + " - In previous conversations, have you considered other viewpoints presented?"
+        return self.get_model_prompt_post(data, user_id, prev_qs, base_prompt)
 
     def get_model_prompt_personal_crisis(self, user_id, app, db_session):
-        prev_qs = pd.DataFrame(self.recent_questions[user_id],columns=['sentences'])
-        data = self.datasets[user_id]
-        base_prompt = self.user_emotions[user_id] + " - Are you undergoing a personal crisis (experiencing difficulties with loved ones e.g. falling out with friends)?"
-        column = data[base_prompt].dropna()
-        question = self.get_best_sentence(column, prev_qs)
-        if len(self.recent_questions[user_id]) < 50:
-            self.recent_questions[user_id].append(question)
-        else:
-            self.recent_questions[user_id] = []
-            self.recent_questions[user_id].append(question)
-        return self.split_sentence(question)
+        prev_qs, data, mapped_emotion = self.get_model_prompt_pre(user_id)
+        base_prompt = mapped_emotion + " - Are you undergoing a personal crisis (experiencing difficulties with loved ones e.g. falling out with friends)?"
+        return self.get_model_prompt_post(data, user_id, prev_qs, base_prompt)
 
     def get_model_prompt_happy(self, user_id, app, db_session):
-        prev_qs = pd.DataFrame(self.recent_questions[user_id],columns=['sentences'])
-        data = self.datasets[user_id]
-        column = data["Happy - That's Good! Let me recommend a protocol you can attempt."].dropna()
-        question = self.get_best_sentence(column, prev_qs)
-        if len(self.recent_questions[user_id]) < 50:
-            self.recent_questions[user_id].append(question)
-        else:
-            self.recent_questions[user_id] = []
-            self.recent_questions[user_id].append(question)
-        return self.split_sentence(question)
+        prev_qs, data, _ = self.get_model_prompt_pre(user_id)
+        base_prompt = "Happy - That's Good! Let me recommend a protocol you can attempt."
+        return self.get_model_prompt_post(data, user_id, prev_qs, base_prompt)
 
     def get_model_prompt_suggestions(self, user_id, app, db_session):
-        prev_qs = pd.DataFrame(self.recent_questions[user_id],columns=['sentences'])
-        data = self.datasets[user_id]
-        column = data["All emotions - Here are my recommendations, please select the protocol that you would like to attempt"].dropna()
-        question = self.get_best_sentence(column, prev_qs)
-        if len(self.recent_questions[user_id]) < 50:
-            self.recent_questions[user_id].append(question)
-        else:
-            self.recent_questions[user_id] = []
-            self.recent_questions[user_id].append(question)
-        return self.split_sentence(question)
+        prev_qs, data, _ = self.get_model_prompt_pre(user_id)
+        base_prompt = "All emotions - Here are my recommendations, please select the protocol that you would like to attempt"
+        return self.get_model_prompt_post(data, user_id, prev_qs, base_prompt)
 
     def get_model_prompt_trying_protocol(self, user_id, app, db_session):
-        prev_qs = pd.DataFrame(self.recent_questions[user_id],columns=['sentences'])
-        data = self.datasets[user_id]
-        column = data["All emotions - Please try to go through this protocol now. When you finish, press 'continue'"].dropna()
-        question = self.get_best_sentence(column, prev_qs)
-        if len(self.recent_questions[user_id]) < 50:
-            self.recent_questions[user_id].append(question)
-        else:
-            self.recent_questions[user_id] = []
-            self.recent_questions[user_id].append(question)
-        return ["You have selected Protocol " + str(self.current_protocol_ids[user_id][0]) + ". ", self.split_sentence(question)]
+        prev_qs, data, _ = self.get_model_prompt_pre(user_id)
+        base_prompt = "All emotions - Please try to go through this protocol now. When you finish, press 'continue'"
+        split_sentence = self.get_model_prompt_post(data, user_id, prev_qs, base_prompt)
+        return ["You have selected Protocol " + str(self.current_protocol_ids[user_id][0]) + ". ", split_sentence]
 
     def get_model_prompt_found_useful(self, user_id, app, db_session):
-        prev_qs = pd.DataFrame(self.recent_questions[user_id],columns=['sentences'])
-        data = self.datasets[user_id]
-        column = data["All emotions - Do you feel better or worse after having taken this protocol?"].dropna()
-        question = self.get_best_sentence(column, prev_qs)
-        if len(self.recent_questions[user_id]) < 50:
-            self.recent_questions[user_id].append(question)
-        else:
-            self.recent_questions[user_id] = []
-            self.recent_questions[user_id].append(question)
-        return self.split_sentence(question)
+        prev_qs, data, _ = self.get_model_prompt_pre(user_id)
+        base_prompt = "All emotions - Do you feel better or worse after having taken this protocol?"
+        return self.get_model_prompt_post(data, user_id, prev_qs, base_prompt)
 
     def get_model_prompt_new_better(self, user_id, app, db_session):
-        prev_qs = pd.DataFrame(self.recent_questions[user_id],columns=['sentences'])
-        data = self.datasets[user_id]
-        column = data["All emotions - Would you like to attempt another protocol? (Patient feels better)"].dropna()
-        question = self.get_best_sentence(column, prev_qs)
-        if len(self.recent_questions[user_id]) < 50:
-            self.recent_questions[user_id].append(question)
-        else:
-            self.recent_questions[user_id] = []
-            self.recent_questions[user_id].append(question)
-        return self.split_sentence(question)
+        prev_qs, data, _ = self.get_model_prompt_pre(user_id)
+        base_prompt = "All emotions - Would you like to attempt another protocol? (Patient feels better)"
+        return self.get_model_prompt_post(data, user_id, prev_qs, base_prompt)
 
     def get_model_prompt_new_worse(self, user_id, app, db_session):
-        prev_qs = pd.DataFrame(self.recent_questions[user_id],columns=['sentences'])
-        data = self.datasets[user_id]
-        column = data["All emotions - Would you like to attempt another protocol? (Patient feels worse)"].dropna()
-        question = self.get_best_sentence(column, prev_qs)
-        if len(self.recent_questions[user_id]) < 50:
-            self.recent_questions[user_id].append(question)
-        else:
-            self.recent_questions[user_id] = []
-            self.recent_questions[user_id].append(question)
-        return self.split_sentence(question)
+        prev_qs, data, _ = self.get_model_prompt_pre(user_id)
+        base_prompt = "All emotions - Would you like to attempt another protocol? (Patient feels worse)"
+        return self.get_model_prompt_post(data, user_id, prev_qs, base_prompt)
 
     def get_model_prompt_ending(self, user_id, app, db_session):
-        prev_qs = pd.DataFrame(self.recent_questions[user_id],columns=['sentences'])
-        data = self.datasets[user_id]
-        column = data["All emotions - Thank you for taking part. See you soon"].dropna()
-        question = self.get_best_sentence(column, prev_qs)
-        if len(self.recent_questions[user_id]) < 50:
-            self.recent_questions[user_id].append(question)
-        else:
-            self.recent_questions[user_id] = []
-            self.recent_questions[user_id].append(question)
-        return [self.split_sentence(question), "You have been disconnected. Refresh the page if you would like to start over."]
+        prev_qs, data, _ = self.get_model_prompt_pre(user_id)
+        base_prompt = "All emotions - Thank you for taking part. See you soon"
+        split_sentence = self.get_model_prompt_post(data, user_id, prev_qs, base_prompt)
+        return [split_sentence, "You have been disconnected. Refresh the page if you would like to start over."]
 
 
     def determine_next_prompt_new_protocol(self, user_id, app):
@@ -1240,7 +1160,10 @@ class ModelDecisionMaker:
                 next_choice = current_choice_for_question[protocol_choice]
                 protocols_chosen = current_protocols[protocol_choice]
 
-            elif current_choice == "check_emotion":
+            else:
+                next_choice = current_choice_for_question[user_choice]
+                protocols_chosen = current_protocols[user_choice]
+            """
                 if user_choice == "Sad":
                     next_choice = current_choice_for_question["Sad"]
                     protocols_chosen = current_protocols["Sad"]
@@ -1256,6 +1179,7 @@ class ModelDecisionMaker:
             else:
                 next_choice = current_choice_for_question[user_choice]
                 protocols_chosen = current_protocols[user_choice]
+            """
 
         else:
             next_choice = current_choice_for_question["open_text"]
@@ -1277,6 +1201,7 @@ class ModelDecisionMaker:
         #IEMOCAP version
         #IEMOCAP: ['angry', 'happy', 'sad', 'surprised', 'neutral', 'frustrated', 'excited', 'fearful']
         if current_choice == "guess_emotion" and user_choice.lower() == "yes":
+            
             if self.guess_emotion_predictions[user_id] == "Sad":
                 next_choice = next_choice["Sad"]
             elif self.guess_emotion_predictions[user_id] == "Angry" or self.guess_emotion_predictions[user_id] == "Frustrated" or self.guess_emotion_predictions[user_id] == "Disgust":
@@ -1285,6 +1210,8 @@ class ModelDecisionMaker:
                 next_choice = next_choice["Anxious or scared"]
             else:
                 next_choice = next_choice["Happy or content"]
+            
+            #next_choice = next_choice[self.guess_emotion_predictions[user_id]]
 
         if callable(protocols_chosen):
             protocols_chosen = protocols_chosen(user_id, db_session, user_session, app)
@@ -1310,3 +1237,67 @@ class ModelDecisionMaker:
             next_choices = list(self.QUESTIONS[next_choice]["choices"].keys())
         self.user_choices[user_id]["choices_made"]["current_choice"] = next_choice
         return {"model_prompt": next_prompt, "choices": next_choices, "persona": self.chosen_personas[user_id]}
+
+
+
+"""
+    # Adapt choices for IEMOCAP or CMU-MOSEI
+    "check_emotion": {
+        "model_prompt": lambda user_id, db_session, curr_session, app: self.get_model_prompt_check_emotion(user_id, app, db_session),
+        "choices": {
+            "Sad": lambda user_id, db_session, curr_session, app: self.get_emotion(user_id, "Sad"),
+            "Angry": lambda user_id, db_session, curr_session, app: self.get_emotion(user_id, "Angry"),
+            "Anxious or scared": lambda user_id, db_session, curr_session, app: self.get_emotion(user_id, "Anxious or scared"),
+            "Happy or content": lambda user_id, db_session, curr_session, app: self.get_emotion(user_id, "Happy or content"),
+        },
+
+        "protocols": {
+            "Sad": [],
+            "Angry": [],
+            "Anxious or scared" : [],
+            "Happy or content": []
+        },
+
+        #IEMOCAP
+        "choices": {
+            "Angry": lambda user_id, db_session, curr_session, app: self.get_emotion(user_id, "Angry"),
+            "Happy": lambda user_id, db_session, curr_session, app: self.get_emotion(user_id, "Happy"),
+            "Sad": lambda user_id, db_session, curr_session, app: self.get_emotion(user_id, "Sad"),
+            "Surprised": lambda user_id, db_session, curr_session, app: self.get_emotion(user_id, "Surprised"),
+            "Neutral": lambda user_id, db_session, curr_session, app: self.get_emotion(user_id, "Neutral"),
+            "Frustrated": lambda user_id, db_session, curr_session, app: self.get_emotion(user_id, "Frustrated"),
+            "Fearful": lambda user_id, db_session, curr_session, app: self.get_emotion(user_id, "Fearful"),
+            "Excited": lambda user_id, db_session, curr_session, app: self.get_emotion(user_id, "Excited"),
+        },
+        
+        "protocols": {
+            "Angry": [],
+            "Happy": [],
+            "Sad" : [],
+            "Surprised": [],
+            "Neutral": [],
+            "Frustrated": [],
+            "Fearful": [],
+            "Excited": [],
+        },
+    },
+
+        #CMU-MOSEI
+        "choices": {
+            "Angry": lambda user_id, db_session, curr_session, app: self.get_emotion(user_id, "Angry"),
+            "Happy": lambda user_id, db_session, curr_session, app: self.get_emotion(user_id, "Happy"),
+            "Sad": lambda user_id, db_session, curr_session, app: self.get_emotion(user_id, "Sad"),
+            "Surprised": lambda user_id, db_session, curr_session, app: self.get_emotion(user_id, "Surprised"),
+            "Disgust": lambda user_id, db_session, curr_session, app: self.get_emotion(user_id, "Disgust"),
+            "Fear": lambda user_id, db_session, curr_session, app: self.get_emotion(user_id, "Fear"),
+        },
+        
+        "protocols": {
+            "Angry": [],
+            "Happy": [],
+            "Sad" : [],
+            "Surprised": [],
+            "Disgust": [],
+            "Fear": [],
+        },
+"""

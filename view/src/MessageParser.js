@@ -42,15 +42,12 @@ class MessageParser {
         console.log("recorder stopped");
         var audioURL = null;
         audio = document.createElement("audio");
-        console.log('audi0', audio);
         blob = new Blob(chunks, { type: "audio/webm; codecs=opus" });
-        console.log('blob', blob);
         audioURL = window.URL.createObjectURL(blob);
         audio.src = audioURL;        
         actionProvider?.uploadSpeech(blob, speechData);
       };
       mp.mediaRecorder.ondataavailable = function (e) {
-        console.log('ondata available', e.data);
         chunks.push(e.data);
       };
       mp.mediaRecorder.then = function () {
@@ -61,6 +58,7 @@ class MessageParser {
     };
     this.recognition.onend = (e) => {
       if(speechData !== undefined){
+        speechData = speechData.charAt(0).toUpperCase() + speechData.slice(1);
         mp.mediaRecorder.stop();
         this.recognition.abort();
         actionProvider.createClientMessage(speechData);
@@ -99,7 +97,7 @@ class MessageParser {
         input_type: [
           1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
         ],
-        persona: this.persona,
+        persona: this.state.personality,
       };
       this.actionProvider.stopAskingForProtocol();
       return this.actionProvider.sendRequest(choice_info);
@@ -171,7 +169,7 @@ class MessageParser {
           session_id: this.state.sessionID,
           user_choice: message,
           input_type: input_type,
-          persona: this.persona,
+          persona: this.state.personality,
         };
 
         return this.actionProvider.sendRequest(choice_info);

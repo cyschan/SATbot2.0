@@ -4,7 +4,7 @@ import { synthesiseSpeech } from './SpeechSynthesis'
 // ActionProvider starter code
 class ActionProvider {
 
-  constructor(createChatBotMessage, setStateFunc, createClientMessage) {
+  constructor(createChatBotMessage, setStateFunc, createClientMessage, stateRef) {
     this.createChatBotMessage = createChatBotMessage;
     this.setState = setStateFunc;
     this.createClientMessage = createClientMessage;
@@ -126,6 +126,10 @@ class ActionProvider {
     // URL to use for local requests
     if (choice_info["user_choice"] === "Olivia" || choice_info["user_choice"] === "Robert" || choice_info["user_choice"] === "Kai" || choice_info["user_choice"] === "Gabrielle" || choice_info["user_choice"] === "Arman"){
       this.persona = choice_info["user_choice"];
+      this.setState((state) => ({
+        ...state,
+        personality: choice_info["user_choice"],
+      }));
     }
 
     const uri = `http://localhost:5000/api/update_session`;
@@ -137,6 +141,9 @@ class ActionProvider {
     if (this.persona != null){
       synthesiseSpeech(response.data.chatbot_response, this.persona);
     }
+    else {
+    synthesiseSpeech(response.data.chatbot_response, choice_info['persona']);
+  }
   };
 
   uploadSpeech = async (audio, transcript) => {
@@ -223,7 +230,7 @@ class ActionProvider {
     }
   };
 
-  handleButtonsEmotion = (userID, sessionID, userInput, userInputType) => {
+  handleButtonsEmotion = (userID, sessionID, userInput, userInputType,persona) => {
     let inputToSend = userInput;
     let message = this.createClientMessage(userInput);
     this.addMessageToBotState(message);
@@ -236,11 +243,12 @@ class ActionProvider {
       session_id: sessionID,
       user_choice: inputToSend,
       input_type: input_type,
+      persona:persona
     };
     this.sendRequest(dataToSend);
   }
 
-  handleButtons = (userID, sessionID, userInput, userInputType) => {
+  handleButtons = (userID, sessionID, userInput, userInputType,persona) => {
     let message = this.createClientMessage(userInput);
     this.addMessageToBotState(message);
 
@@ -249,6 +257,7 @@ class ActionProvider {
       session_id: sessionID,
       user_choice: userInput,
       input_type: userInputType,
+      persona: persona
     };
     return this.sendRequest(dataToSend);
   };
