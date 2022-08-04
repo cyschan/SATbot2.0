@@ -194,6 +194,7 @@ animation-delay: 0.4s;
 .react-chatbot-kit-chat-input {
   width: 100%;
   padding: 12.5px;
+  padding-right: 30px;
   border: none;
   font-size: 1.1rem;
   border-top: 1px solid #B8BABA;
@@ -234,4 +235,16 @@ animation-delay: 0.4s;
 100% {
   opacity: 0;
 }
+}
+
+.header-mic{
+  display: flex;
+  justify-content: space-between;
+}
+.header-mic a {
+  position: absolute;
+  right: 82px;
+  width: 24px;
+  bottom: 4px;
+  z-index: 9;
 }
